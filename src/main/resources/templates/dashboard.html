@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Control | Sistema GIAR-V</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; overflow-x: hidden; }
+        
+        .sidebar { background: #1e3c72; color: white; height: 100vh; overflow-y: auto; width: 260px; transition: all 0.3s ease; z-index: 1000; position: sticky; top: 0; }
+        .sidebar::-webkit-scrollbar { width: 6px; }
+        .sidebar::-webkit-scrollbar-thumb { background-color: rgba(255, 255, 255, 0.2); border-radius: 10px; }
+        @media (max-width: 767.98px) {
+            .sidebar { position: fixed; transform: translateX(-100%); }
+            .sidebar.show { transform: translateX(0); }
+        }
+        .sidebar a { color: rgba(255, 255, 255, 0.8); text-decoration: none; padding: 12px 20px; display: block; transition: 0.2s; font-weight: 500; font-size: 0.95rem; }
+        .sidebar a:hover, .sidebar a.active { background: rgba(255, 255, 255, 0.1); color: #ff9800; border-left: 4px solid #ff9800; }
+        .sidebar-heading { color: rgba(255,255,255,0.5); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; padding: 15px 20px 5px; font-weight: bold; }
+        
+        .topbar { background: white; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04); }
+        
+        .card-stats { border-radius: 16px; border: none; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05); transition: transform 0.2s; background: white; }
+        .card-stats:hover { transform: translateY(-5px); }
+        .icon-box { width: 56px; height: 56px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 1.75rem; }
+        
+        .chart-card { background: white; border-radius: 16px; border: none; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05); padding: 24px; height: 100%; }
+        
+        .bg-gradient-villa { background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: white; }
+    </style>
+</head>
+<body>
+
+    <div class="d-flex position-relative w-100">
+        
+        <nav class="sidebar flex-shrink-0 shadow-lg" id="sidebarMenu">
+            <div class="p-4 text-center border-bottom border-secondary">
+                <i class="bi bi-box-seam-fill" style="font-size: 2rem; color: #ff9800;"></i>
+                <h5 class="fw-bold mt-2 mb-0">Menestras Villa</h5>
+                <small class="text-white-50">Sede Lima</small>
+            </div>
+            
+            <div class="mt-2">
+                <div class="sidebar-heading">Principal</div>
+                <a th:href="@{/dashboard}" class="active"><i class="bi bi-speedometer2 me-3"></i> Dashboard</a>
+
+                <div class="sidebar-heading mt-2">Operaciones</div>
+                <a th:href="@{/pos}"><i class="bi bi-cart-check me-3"></i> Punto de Venta</a>
+                <a th:href="@{/pos/historial}"><i class="bi bi-clock-history me-3"></i> Mis Ventas</a>
+                <a th:href="@{/proveedores}" sec:authorize="hasAuthority('ADMIN')"><i class="bi bi-building me-3"></i> Proveedores</a>
+                <a th:href="@{/compras}" sec:authorize="hasAuthority('ADMIN')"><i class="bi bi-truck me-3"></i> Ingreso de Compras</a>
+
+                <div class="sidebar-heading mt-2">Almacén y Stock</div>
+                <a th:href="@{/productos}"><i class="bi bi-tags me-3"></i> Catálogo de Productos</a>
+                <a th:href="@{/categorias}" sec:authorize="hasAuthority('ADMIN')"><i class="bi bi-grid me-3"></i> Categorías</a>
+                <a th:href="@{/movimientos}"><i class="bi bi-clipboard-data me-3"></i> Movimientos</a>
+
+                <div sec:authorize="hasAuthority('ADMIN')">
+                    <div class="sidebar-heading mt-2">Análisis</div>
+                    <a th:href="@{/reportes}"><i class="bi bi-file-earmark-bar-graph me-3"></i> Reportes Automatizados</a>
+                </div>
+
+                <div class="sidebar-heading mt-2">Finanzas y Seguridad</div>
+                <a th:href="@{/caja/estado}"><i class="bi bi-piggy-bank me-3"></i> Caja</a>
+                <a th:href="@{/gastos}" sec:authorize="hasAuthority('ADMIN')"><i class="bi bi-wallet2 me-3"></i> Gastos Administrativos</a>
+
+                <div sec:authorize="hasAuthority('ADMIN')">
+                    <a th:href="@{/usuarios}"><i class="bi bi-people me-3"></i> Gestión de Usuarios</a>
+                    <a th:href="@{/configuracion}"><i class="bi bi-gear me-3"></i> Configuración</a>
+                </div>
+            </div>
+        </nav>
+
+        <div class="flex-grow-1 w-100" style="min-height: 100vh;">
+            
+            <header class="topbar d-flex justify-content-between align-items-center p-3 px-4 sticky-top">
+                <div class="d-flex align-items-center">
+                    <button id="btnToggleSidebar" class="btn btn-light d-md-none me-3 shadow-sm"><i class="bi bi-list fs-5"></i></button>
+                    <h4 class="mb-0 fw-bold text-secondary d-none d-sm-block">Resumen General</h4>
+                </div>
+                
+                <div class="d-flex align-items-center">
+                    <div class="me-3 text-end d-none d-sm-block">
+                        <small class="text-muted d-block">Usuario Autenticado</small>
+                        <span class="fw-bold text-dark" sec:authentication="name">Cargando...</span>
+                    </div>
+                    <form th:action="@{/logout}" method="post" class="m-0">
+                        <button type="submit" class="btn btn-outline-danger btn-sm px-3 rounded-pill shadow-sm">
+                            <i class="bi bi-box-arrow-right me-1"></i> Cerrar Sesión
+                        </button>
+                    </form>
+                </div>
+            </header>
+
+            <main class="p-3 p-md-4">
+                
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card border-0 shadow-sm p-4 bg-white" style="border-radius: 16px;">
+                            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center">
+                                <div>
+                                    <h3 class="fw-bold text-dark mb-1">¡Hola, <span th:text="${#authentication.name}" class="text-primary">Admin</span>!</h3>
+                                    <p class="text-muted mb-0">Bienvenido al Panel de Control de <strong>Menestras Villa - Sede Lima</strong>.</p>
+                                </div>
+                                
+                                <div class="mt-3 mt-md-0 d-flex align-items-center">
+                                    <span class="text-muted small fw-medium me-3"><i class="bi bi-funnel me-1"></i>Mostrando métricas de:</span>
+                                    <div class="dropdown shadow-sm rounded-pill">
+                                        <button class="btn btn-light border dropdown-toggle fw-bold text-primary rounded-pill px-4" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                            <i class="bi bi-calendar3 me-2"></i>
+                                            <span th:text="${periodoActual == 'hoy' ? 'Solo Hoy' : (periodoActual == 'semana' ? 'Últimos 7 días' : (periodoActual == 'mes' ? 'Este Mes' : 'Histórico Global'))}">Este Mes</span>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end border-0 shadow-lg mt-2 rounded-3">
+                                            <li><a class="dropdown-item py-2 fw-medium" th:classappend="${periodoActual == 'hoy' ? 'active bg-primary' : ''}" th:href="@{/dashboard(periodo='hoy')}">Solo Hoy</a></li>
+                                            <li><a class="dropdown-item py-2 fw-medium" th:classappend="${periodoActual == 'semana' ? 'active bg-primary' : ''}" th:href="@{/dashboard(periodo='semana')}">Últimos 7 días</a></li>
+                                            <li><a class="dropdown-item py-2 fw-medium" th:classappend="${periodoActual == 'mes' ? 'active bg-primary' : ''}" th:href="@{/dashboard(periodo='mes')}">Este Mes</a></li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li><a class="dropdown-item py-2 fw-medium" th:classappend="${periodoActual == 'siempre' ? 'active bg-primary' : ''}" th:href="@{/dashboard(periodo='siempre')}">Histórico Global</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                
+                <div class="row g-4 mb-4">
+                    <div class="col-12 col-md-4">
+                        <div class="card card-stats p-4 border-start border-success border-4 h-100">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <p class="text-muted mb-1 small text-uppercase fw-bold">Ingresos Totales</p>
+                                    <h2 class="mb-0 fw-bold text-dark" th:text="'S/ ' + ${#numbers.formatDecimal(totalIngresos, 1, 'COMMA', 2, 'POINT')}">S/ 0.00</h2>
+                                    <small class="text-success fw-bold"><i class="bi bi-graph-up me-1"></i> Ventas Netas</small>
+                                </div>
+                                <div class="icon-box bg-success bg-opacity-10 text-success">
+                                    <i class="bi bi-currency-dollar"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12 col-md-4">
+                        <div class="card card-stats p-4 border-start border-danger border-4 h-100">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <p class="text-muted mb-1 small text-uppercase fw-bold">Egresos & Gastos</p>
+                                    <h2 class="mb-0 fw-bold text-dark" th:text="'S/ ' + ${#numbers.formatDecimal(totalEgresos, 1, 'COMMA', 2, 'POINT')}">S/ 0.00</h2>
+                                    <small class="text-danger fw-bold"><i class="bi bi-wallet2 me-1"></i> Gastos y Depósitos</small>
+                                </div>
+                                <div class="icon-box bg-danger bg-opacity-10 text-danger">
+                                    <i class="bi bi-cart-dash"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12 col-md-4">
+                        <div class="card card-stats p-4 border-0 h-100 bg-gradient-villa shadow-lg">
+                            <div class="d-flex justify-content-between align-items-center text-white">
+                                <div>
+                                    <p class="text-white-50 mb-1 small text-uppercase fw-bold">Utilidad Neta Real</p>
+                                    <h2 class="mb-0 fw-bold text-white" th:text="'S/ ' + ${#numbers.formatDecimal(utilidadNeta, 1, 'COMMA', 2, 'POINT')}">S/ 0.00</h2>
+                                    <small class="text-white fw-bold"><i class="bi bi-shield-check me-1"></i> Ganancia Efectiva</small>
+                                </div>
+                                <div class="icon-box bg-white shadow-sm" style="color: #1e3c72;">
+                                    <i class="bi bi-bank"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-4 mb-4">
+                    
+                    <div class="col-12 col-md-4">
+                        <div class="card card-stats p-3 border-start border-warning border-4" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#modalStock">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div class="d-flex align-items-center">
+                                    <div class="icon-box bg-warning bg-opacity-10 text-warning me-3" style="width: 45px; height: 45px; font-size: 1.2rem;">
+                                        <i class="bi bi-exclamation-triangle"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-muted mb-0 small fw-bold text-uppercase">Alertas Stock</p>
+                                        <h5 class="mb-0 fw-bold" th:text="${alertasStock}">0</h5>
+                                    </div>
+                                </div>
+                                <div class="text-warning opacity-50"><i class="bi bi-chevron-right fs-4"></i></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12 col-md-4">
+                        <div class="card card-stats p-3 border-start border-primary border-4">
+                            <div class="d-flex align-items-center">
+                                <div class="icon-box bg-primary bg-opacity-10 text-primary me-3" style="width: 45px; height: 45px; font-size: 1.2rem;">
+                                    <i class="bi bi-person-badge"></i>
+                                </div>
+                                <div>
+                                    <p class="text-muted mb-0 small fw-bold text-uppercase">Tu Caja Hoy</p>
+                                    <h5 class="mb-0 fw-bold" th:text="'S/ ' + ${#numbers.formatDecimal(ventasTurno, 1, 2)}">S/ 0.00</h5>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <div class="card card-stats p-3 border-start border-info border-4">
+                            <div class="d-flex align-items-center">
+                                <div class="icon-box bg-info bg-opacity-10 text-info me-3" style="width: 45px; height: 45px; font-size: 1.2rem;">
+                                    <i class="bi bi-calendar-check"></i>
+                                </div>
+                                <div>
+                                    <p class="text-muted mb-0 small fw-bold text-uppercase">Arqueos (7D)</p>
+                                    <h5 class="mb-0 fw-bold" th:text="${cajasCerradas}">0</h5>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                
+                <div class="row g-4">
+                    <div class="col-12 col-lg-6"> 
+                        <div class="chart-card">
+                            <h6 class="fw-bold text-muted mb-4"><i class="bi bi-pie-chart-fill me-2 text-primary"></i>Ventas por Comprobante</h6>
+                            <canvas id="comprobantesChart" style="max-height: 280px;"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="col-12 col-lg-6"> 
+                        <div class="chart-card">
+                            <h6 class="fw-bold text-muted mb-4"><i class="bi bi-bar-chart-fill me-2 text-primary"></i>Top 5 Productos Más Vendidos</h6>
+                            <canvas id="productosChart" style="max-height: 280px;"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modalStock" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+          
+          <div class="modal-header bg-warning border-0 p-4">
+            <h5 class="modal-title fw-bold text-dark"><i class="bi bi-exclamation-triangle-fill me-2"></i> Productos en Nivel Crítico</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          
+          <div class="modal-body p-0">
+            <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light sticky-top" style="z-index: 1;">
+                        <tr class="text-secondary small">
+                            <th class="ps-4 py-3">PRODUCTO</th>
+                            <th class="py-3">CATEGORÍA</th>
+                            <th class="py-3">STOCK ACTUAL</th>
+                            <th class="py-3">STOCK MÍNIMO</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:if="${#lists.isEmpty(productosBajoStock)}">
+                            <td colspan="4" class="text-center py-5 text-muted">
+                                <i class="bi bi-check-circle text-success fs-1 d-block mb-2"></i>
+                                Todo el inventario está en niveles óptimos.
+                            </td>
+                        </tr>
+                        <tr th:each="p : ${productosBajoStock}">
+                            <td class="ps-4 fw-bold text-dark" th:text="${p.nombre}"></td>
+                            <td><span class="badge bg-light text-secondary border" th:text="${p.categoria != null ? p.categoria.nombre : 'Sin categoría'}"></span></td>
+                            <td class="fw-bold text-danger">
+                                <i class="bi bi-arrow-down-circle-fill me-1"></i> <span th:text="${p.stockActualKg} + ' kg'"></span>
+                            </td>
+                            <td class="text-muted" th:text="${p.stockMinimoKg} + ' kg'"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+          </div>
+          
+          <div class="modal-footer border-top p-3 bg-light d-flex justify-content-between">
+            <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Cerrar</button>
+            <a th:href="@{/compras}" class="btn btn-dark fw-bold rounded-pill px-4 shadow-sm" sec:authorize="hasAuthority('ADMIN')">
+                <i class="bi bi-cart-plus me-1"></i> Ir a Compras
+            </a>
+          </div>
+          
+        </div>
+      </div>
+    </div>
+
+<script th:inline="javascript">
+    document.addEventListener('DOMContentLoaded', function() {
+        
+        const btnToggle = document.getElementById('btnToggleSidebar');
+        const sidebar = document.getElementById('sidebarMenu');
+        if(btnToggle) btnToggle.addEventListener('click', () => sidebar.classList.toggle('show'));
+
+        const coloresMenestras = ['#1e3c72', '#ff9800', '#10b981', '#ef4444', '#8b5cf6'];
+        
+        const comprobantesLabels = /*[[${comprobantesLabels}]]*/ ['Sin Datos'];
+        const comprobantesData = /*[[${comprobantesData}]]*/ [1];
+        const topProductosLabels = /*[[${topProductosLabels}]]*/ ['Sin Ventas'];
+        const topProductosData = /*[[${topProductosData}]]*/ [0];
+
+        const ctxComprobantes = document.getElementById('comprobantesChart').getContext('2d');
+        new Chart(ctxComprobantes, {
+            type: 'doughnut',
+            data: {
+                labels: comprobantesLabels,
+                datasets: [{
+                    data: comprobantesData,
+                    backgroundColor: coloresMenestras.slice(0, comprobantesData.length),
+                    borderWidth: 0
+                }]
+            },
+            options: { cutout: '70%', plugins: { legend: { position: 'bottom' } }, responsive: true, maintainAspectRatio: false }
+        });
+
+        const ctxProductos = document.getElementById('productosChart').getContext('2d');
+        new Chart(ctxProductos, {
+            type: 'bar',
+            data: {
+                labels: topProductosLabels,
+                datasets: [{
+                    label: 'Cantidad (Kg)',
+                    data: topProductosData,
+                    backgroundColor: '#ff9800',
+                    borderRadius: 8
+                }]
+            },
+            options: { 
+                scales: { y: { beginAtZero: true, grid: { color: '#f1f5f9' } }, x: { grid: { display: false } } },
+                plugins: { legend: { display: false } },
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+    });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

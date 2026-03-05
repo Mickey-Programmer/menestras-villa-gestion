@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Comprobante | Sistema GIAR-V</title>
+    <style>
+        @page { 
+            margin: 0; 
+            size: 58mm 200mm; 
+        }
+        
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            width: 48mm; 
+            margin: 0 auto; 
+            padding: 5mm 0; 
+            font-size: 11px; 
+            color: #000;
+            line-height: 1.2;
+        }
+
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .text-left { text-align: left; }
+        .fw-bold { font-weight: bold; }
+        .text-uppercase { text-transform: uppercase; }
+        
+        .separator { 
+            border-top: 1px dashed #000; 
+            margin: 5px 0; 
+        }
+
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin: 5px 0; 
+            font-size: 10px;
+        }
+        th, td { 
+            padding: 2px 0; 
+            vertical-align: top;
+        }
+        .col-cant { width: 15%; text-align: left; }
+        .col-desc { width: 55%; text-align: left; padding-right: 2px; }
+        .col-total { width: 30%; text-align: right; }
+        
+        @media print { 
+            .no-print { display: none !important; } 
+        }
+        
+        .btn-group { 
+            margin-top: 30px; 
+            text-align: center; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 10px; 
+        }
+        .btn { 
+            padding: 12px; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            border: none; 
+            font-weight: bold; 
+            font-family: sans-serif;
+            text-decoration: none;
+            display: block;
+            box-sizing: border-box;
+            transition: opacity 0.2s;
+        }
+        .btn:hover {
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="text-center text-uppercase">
+        <h3 style="margin: 0; font-size: 16px;" th:text="${configuracion != null ? configuracion.nombreComercial : 'MENESTRAS VILLA'}"></h3>
+        <p style="margin: 2px 0; font-size: 10px;" th:text="${configuracion != null ? configuracion.direccion : 'Sede Lima'}"></p>
+        <p style="margin: 2px 0; font-weight: bold;">RUC: <span th:text="${configuracion != null ? configuracion.ruc : '1019022096'}"></span></p>
+        
+        <div class="separator"></div>
+        
+        <h4 style="margin: 5px 0; font-size: 13px;" 
+            th:text="${venta.tipoComprobante == 'FACTURA' ? 'FACTURA ELECTRÓNICA' : (venta.tipoComprobante == 'BOLETA' ? 'BOLETA DE VENTA ELECTRÓNICA' : 'NOTA DE VENTA')}">
+        </h4>
+        <p style="margin: 0; font-weight: bold; font-size: 12px;">TICKET: <span th:text="${venta.id}">0000</span></p>
+    </div>
+
+    <div class="separator"></div>
+
+    <div style="font-size: 10px;" class="text-uppercase">
+        <p style="margin: 2px 0;">FECHA: <span th:text="${#temporals.format(venta.fecha, 'dd/MM/yyyy HH:mm')}"></span></p>
+        
+        <div th:if="${venta.clienteNombre != null && !venta.clienteNombre.isEmpty()}">
+            <p style="margin: 2px 0;">CLIENTE: <span th:text="${venta.clienteNombre}"></span></p>
+        </div>
+        
+        <div th:if="${venta.clienteDoc != null && !venta.clienteDoc.isEmpty()}">
+            <p style="margin: 2px 0;" th:text="${venta.tipoComprobante == 'FACTURA' ? 'RUC: ' : 'DNI: '} + ${venta.clienteDoc}"></p>
+        </div>
+        
+        <p style="margin: 2px 0;">PAGO: <span th:text="${venta.metodoPago}"></span></p>
+        <p style="margin: 2px 0;">CAJERO: <span th:text="${venta.usuario.nombreCompleto}"></span></p>
+    </div>
+
+    <div class="separator"></div>
+
+    <table>
+        <thead>
+            <tr style="border-bottom: 1px solid #000;">
+                <th class="col-cant">CANT</th>
+                <th class="col-desc">DESCRIPCIÓN</th>
+                <th class="col-total">TOTAL</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr th:each="d : ${venta.detalles}">
+                <td class="col-cant" th:text="${#numbers.formatDecimal(d.cantidadUnidades, 1, 1)} + (${d.unidadMedida eq 'KILO' ? 'kg' : 'sc'})"></td>
+                <td class="col-desc text-uppercase" th:text="${d.producto.nombre}"></td>
+                <td class="col-total" th:text="${#numbers.formatDecimal(d.subtotal, 1, 2)}"></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="separator"></div>
+
+    <div class="text-right text-uppercase" th:with="porcentajeIgv=${configuracion != null ? configuracion.porcentajeIgv : 18.0}, divisor=${1 + (porcentajeIgv / 100.0)}, simboloMoneda=${configuracion != null ? configuracion.simboloMoneda : 'S/'}">
+        
+        <div th:if="${venta.tipoComprobante != 'NOTA'}" style="font-size: 10px;">
+            <p style="margin: 2px 0;">OP. GRAVADA: <span th:text="${simboloMoneda}"></span> <span th:text="${#numbers.formatDecimal(venta.totalNeto / divisor, 1, 2)}"></span></p>
+            <p style="margin: 2px 0;">IGV (<span th:text="${porcentajeIgv}"></span>%): <span th:text="${simboloMoneda}"></span> <span th:text="${#numbers.formatDecimal(venta.totalNeto - (venta.totalNeto / divisor), 1, 2)}"></span></p>
+        </div>
+        <h3 style="margin: 5px 0; font-size: 14px;">TOTAL: <span th:text="${simboloMoneda}"></span> <span th:text="${#numbers.formatDecimal(venta.totalNeto, 1, 2)}">0.00</span></h3>
+    </div>
+
+    <div class="separator"></div>
+
+    <div class="text-center" style="font-size: 9px;">
+        <p style="margin: 2px 0; font-weight: bold;" th:text="${configuracion != null && configuracion.mensajeTicket != null ? configuracion.mensajeTicket : '¡GRACIAS POR SU COMPRA!'}"></p>
+        <p style="margin: 2px 0;">Representación impresa de la<br><span th:text="${venta.tipoComprobante}"></span></p>
+    </div>
+
+    <div class="no-print btn-group">
+        <button onclick="window.print()" class="btn" style="background: #1e3a8a; color: white;">
+            🖨️ IMPRIMIR RECIBO
+        </button>
+        
+        <a th:href="@{/pos/ticket/{id}/pdf(id=${venta.id})}" target="_blank" class="btn" style="background: #dc3545; color: white;">
+            📄 DESCARGAR PDF
+        </a>
+
+        <a href="javascript:void(0)" onclick="window.history.back()" class="btn" style="background: #e2e8f0; color: #1e293b;">
+            ⬅️ NUEVA VENTA (Volver al POS)
+        </a>
+    </div>
+	<div th:replace="~{fragments/scripts :: escudo-anti-retroceso}"></div>
+</body>
+</html>

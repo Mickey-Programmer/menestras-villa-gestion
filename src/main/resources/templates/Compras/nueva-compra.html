@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <title>Nueva Compra | Sistema GIAR-V</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f0f2f5; color: #1a202c; overflow-x: hidden; }
+        .sidebar { background: #1e3c72; color: white; height: 100vh; position: sticky; top: 0; overflow-y: auto; width: 260px; transition: all 0.3s; z-index: 1000; }
+        @media (max-width: 767.98px) {
+            .sidebar { position: fixed; transform: translateX(-100%); }
+            .sidebar.show { transform: translateX(0); }
+        }
+        .sidebar::-webkit-scrollbar { width: 6px; }
+        .sidebar::-webkit-scrollbar-thumb { background-color: rgba(255, 255, 255, 0.2); border-radius: 10px; }
+        .sidebar a { color: rgba(255, 255, 255, 0.8); text-decoration: none; padding: 12px 20px; display: block; transition: 0.2s; font-weight: 500; font-size: 0.95rem; }
+        .sidebar a:hover, .sidebar a.active { background: rgba(255, 255, 255, 0.1); color: #ff9800; border-left: 4px solid #ff9800; }
+        .sidebar-heading { color: rgba(255,255,255,0.5); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; padding: 15px 20px 5px; font-weight: bold; }
+        .topbar { background: white; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04); }
+        .main-card { background: white; border: none; border-radius: 16px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+        
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
+
+        .custom-dropdown-menu { max-height: 200px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 0.5rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+        .custom-dropdown-item { cursor: pointer; padding: 10px 15px; font-size: 0.9rem; font-weight: 500; transition: 0.2s; border-bottom: 1px solid #f8fafc; }
+        .custom-dropdown-item:hover { background-color: #f1f5f9; color: #1e3c72; }
+        .custom-dropdown-menu::-webkit-scrollbar { width: 6px; }
+        .custom-dropdown-menu::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
+    </style>
+</head>
+<body>
+
+    <select id="selectDataProductos" style="display:none;">
+        <option th:each="p : ${productos}" th:value="${p.id}" th:data-precio-venta="${p.precioKilo}" th:text="${p.nombre}"></option>
+    </select>
+
+    <select id="selectDataProveedores" style="display:none;">
+        <option th:each="prov : ${proveedores}" th:value="${prov.id}" th:text="${prov.razonSocial + ' - ' + prov.ruc}"></option>
+    </select>
+
+    <div class="d-flex position-relative w-100">
+        <nav class="sidebar flex-shrink-0 shadow-lg" id="sidebarMenu">
+            <div class="p-4 text-center border-bottom border-secondary">
+                <i class="bi bi-shop" style="font-size: 2rem; color: #ff9800;"></i>
+                <h5 class="fw-bold mt-2 mb-0">Menestras Villa</h5>
+                <small class="text-white-50">Sede Lima</small>
+            </div>
+            <div class="mt-2">
+                <div class="sidebar-heading">Principal</div>
+                <a th:href="@{/dashboard}"><i class="bi bi-speedometer2 me-3"></i> Dashboard</a>
+
+                <div class="sidebar-heading mt-2">Operaciones</div>
+                <a th:href="@{/pos}"><i class="bi bi-cart-check me-3"></i> Punto de Venta</a>
+                <a th:href="@{/pos/historial}"><i class="bi bi-clock-history me-3"></i> Mis Ventas</a>
+                <a th:href="@{/proveedores}" sec:authorize="hasAuthority('ADMIN')"><i class="bi bi-building me-3"></i> Proveedores</a>
+                <a th:href="@{/compras}" class="active" sec:authorize="hasAuthority('ADMIN')"><i class="bi bi-truck me-3"></i> Ingreso de Compras</a>
+
+                <div class="sidebar-heading mt-2">Almacén y Stock</div>
+                <a th:href="@{/productos}"><i class="bi bi-tags me-3"></i> Catálogo de Productos</a>
+                <a th:href="@{/categorias}" sec:authorize="hasAuthority('ADMIN')"><i class="bi bi-grid me-3"></i> Categorías</a>
+                <a th:href="@{/movimientos}"><i class="bi bi-clipboard-data me-3"></i> Movimientos</a>
+
+                <div sec:authorize="hasAuthority('ADMIN')">
+                    <div class="sidebar-heading mt-2">Análisis</div>
+                    <a th:href="@{/reportes}"><i class="bi bi-file-earmark-bar-graph me-3"></i> Reportes Automatizados</a>
+                </div>
+
+                <div class="sidebar-heading mt-2">Finanzas y Seguridad</div>
+                <a th:href="@{/caja/estado}"><i class="bi bi-piggy-bank me-3"></i> Caja</a>
+                <a th:href="@{/gastos}" sec:authorize="hasAuthority('ADMIN')"><i class="bi bi-wallet2 me-3"></i> Gastos Administrativos</a>
+
+                <div sec:authorize="hasAuthority('ADMIN')">
+                    <a th:href="@{/usuarios}"><i class="bi bi-people me-3"></i> Gestión de Usuarios</a>
+                    <a th:href="@{/configuracion}"><i class="bi bi-gear me-3"></i> Configuración</a>
+                </div>
+            </div>
+        </nav>
+
+        <div class="flex-grow-1 bg-light w-100" style="min-height: 100vh;">
+            
+            <header class="topbar d-flex justify-content-between align-items-center p-3 px-4 sticky-top">
+                <div class="d-flex align-items-center">
+                    <button id="btnToggleSidebar" class="btn btn-light d-md-none me-3 shadow-sm"><i class="bi bi-list fs-5"></i></button>
+                    <h4 class="mb-0 fw-bold text-secondary text-truncate">Registrar Nueva Compra</h4>
+                </div>
+                <div class="d-flex align-items-center">
+                    <a th:href="@{/compras}" class="btn btn-outline-secondary btn-sm rounded-pill px-3 shadow-sm me-3">
+                        <i class="bi bi-arrow-left me-1"></i> Volver
+                    </a>
+                    <form th:action="@{/logout}" method="post" class="m-0">
+                        <button type="submit" class="btn btn-outline-danger btn-sm px-3 rounded-pill shadow-sm">
+                            <i class="bi bi-box-arrow-right"></i>
+                        </button>
+                    </form>
+                </div>
+            </header>
+
+            <main class="p-3 p-md-4">
+                <div class="row g-4">
+                    
+                    <div class="col-12 col-xl-5">
+                        <div class="main-card p-4 h-100">
+                            <h5 class="fw-bold mb-4"><i class="bi bi-box-seam text-primary me-2"></i>Añadir Productos al Lote</h5>
+                            
+                            <div class="mb-3 position-relative">
+                                <label class="form-label small fw-bold text-muted text-uppercase">Buscador de Producto</label>
+                                
+                                <input type="text" id="inputBuscarProducto" class="form-control border-0 shadow-sm bg-light" 
+                                       placeholder="🔍 Escribe el nombre del producto..." autocomplete="off">
+                                
+                                <ul id="dropdownProductos" class="list-group custom-dropdown-menu position-absolute w-100 bg-white d-none" style="z-index: 1050; top: 100%;">
+                                </ul>
+
+                                <input type="hidden" id="hiddenProductoId">
+                                <input type="hidden" id="hiddenPrecioVenta">
+
+                                <small id="infoPrecioVenta" class="text-primary fw-bold d-none mt-2 d-block">
+                                    <i class="bi bi-info-circle me-1"></i>Precio de venta actual: S/ <span id="spanPrecioVenta">0.00</span>
+                                </small>
+                            </div>
+
+                            <div class="row g-3 mb-4">
+                                <div class="col-6">
+                                    <label class="form-label small fw-bold text-muted text-uppercase">Cantidad (Kg)</label>
+                                    <input type="number" id="inputCantidad" class="form-control border-0 shadow-sm bg-light" placeholder="0" step="0.5" min="0">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label small fw-bold text-muted text-uppercase">Costo x Kg (S/)</label>
+                                    <input type="number" id="inputPrecio" class="form-control border-0 shadow-sm bg-light" placeholder="0.00" step="0.01" min="0">
+                                </div>
+                            </div>
+                            
+                            <button type="button" class="btn btn-primary w-100 fw-bold shadow-sm py-2" onclick="agregarAlLote()">
+                                <i class="bi bi-plus-lg me-2"></i>Añadir a la Compra
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="col-12 col-xl-7">
+                        <div class="main-card p-4 d-flex flex-column h-100">
+                            <h5 class="fw-bold mb-3"><i class="bi bi-card-checklist text-primary me-2"></i>Detalle de la Factura</h5>
+                            
+                            <div class="mb-4 pb-3 border-bottom position-relative">
+                                <label class="form-label small fw-bold text-muted text-uppercase">Proveedor de la Mercadería</label>
+                                
+                                <input type="text" id="inputBuscarProveedor" class="form-control border-0 shadow-sm bg-light w-100" style="max-width: 400px;" 
+                                       placeholder="🔍 Buscar proveedor por nombre o RUC..." autocomplete="off">
+                                
+                                <ul id="dropdownProveedores" class="list-group custom-dropdown-menu position-absolute bg-white d-none" style="z-index: 1050; top: 100%; width: 100%; max-width: 400px;">
+                                </ul>
+
+                                <input type="hidden" id="hiddenProveedorId">
+                            </div>
+
+                            <div class="table-responsive flex-grow-1" style="max-height: 300px; overflow-y: auto;">
+                                <table class="table table-hover align-middle mb-0 text-nowrap">
+                                    <thead class="sticky-top bg-white">
+                                        <tr>
+                                            <th>Producto</th>
+                                            <th class="text-center">Cant. (Kg)</th>
+                                            <th class="text-end">Costo Unit.</th>
+                                            <th class="text-end">Subtotal</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="listaLote">
+                                        <tr>
+                                            <td colspan="5" class="text-center py-4 text-muted">Aún no hay productos en la lista.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+                                <h4 class="fw-bold mb-0 text-dark">TOTAL INVERSIÓN</h4>
+                                <h3 class="fw-bold mb-0 text-danger" id="totalCompraText">S/ 0.00</h3>
+                            </div>
+                            
+                            <button type="button" class="btn btn-danger w-100 fw-bold shadow mt-3 py-3" onclick="procesarCompra()">
+                                <i class="bi bi-cloud-arrow-up-fill me-2"></i>REGISTRAR COMPRA Y SUMAR STOCK
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            </main>
+        </div>
+    </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const btnToggle = document.getElementById('btnToggleSidebar');
+        const sidebar = document.getElementById('sidebarMenu');
+        btnToggle.addEventListener('click', () => sidebar.classList.toggle('show'));
+
+        const inputBuscarProd = document.getElementById('inputBuscarProducto');
+        const dropdownProd = document.getElementById('dropdownProductos');
+        const selectDataProd = document.getElementById('selectDataProductos');
+        const infoPrecio = document.getElementById('infoPrecioVenta');
+        const hiddenIdProd = document.getElementById('hiddenProductoId');
+        const hiddenPrecio = document.getElementById('hiddenPrecioVenta');
+        
+        let opcionesProd = Array.from(selectDataProd.options).filter(opt => opt.value !== '');
+
+        inputBuscarProd.addEventListener('input', function() {
+            const val = this.value.toLowerCase().trim();
+            dropdownProd.innerHTML = '';
+            
+            if(val.length === 0) {
+                dropdownProd.classList.add('d-none');
+                infoPrecio.classList.add('d-none');
+                hiddenIdProd.value = '';
+                hiddenPrecio.value = '';
+                return;
+            }
+
+            const filtrados = opcionesProd.filter(opt => opt.text.toLowerCase().includes(val));
+
+            if(filtrados.length > 0) {
+                filtrados.forEach(opt => {
+                    const li = document.createElement('li');
+                    li.className = 'list-group-item custom-dropdown-item';
+                    li.textContent = opt.text;
+                    
+                    li.onclick = function() {
+                        inputBuscarProd.value = opt.text;
+                        hiddenIdProd.value = opt.value;
+                        hiddenPrecio.value = opt.getAttribute('data-precio-venta');
+                        
+                        document.getElementById('spanPrecioVenta').innerText = parseFloat(hiddenPrecio.value).toFixed(2);
+                        infoPrecio.classList.remove('d-none');
+                        dropdownProd.classList.add('d-none');
+                    };
+                    dropdownProd.appendChild(li);
+                });
+                dropdownProd.classList.remove('d-none');
+            } else {
+                const li = document.createElement('li');
+                li.className = 'list-group-item text-muted text-center py-3';
+                li.textContent = 'No se encontraron resultados';
+                dropdownProd.appendChild(li);
+                dropdownProd.classList.remove('d-none');
+            }
+        });
+
+        const inputBuscarProv = document.getElementById('inputBuscarProveedor');
+        const dropdownProv = document.getElementById('dropdownProveedores');
+        const selectDataProv = document.getElementById('selectDataProveedores');
+        const hiddenProvId = document.getElementById('hiddenProveedorId');
+
+        let opcionesProv = Array.from(selectDataProv.options).filter(opt => opt.value !== '');
+
+        inputBuscarProv.addEventListener('input', function() {
+            const val = this.value.toLowerCase().trim();
+            dropdownProv.innerHTML = '';
+            
+            if(val.length === 0) {
+                dropdownProv.classList.add('d-none');
+                hiddenProvId.value = '';
+                return;
+            }
+
+            const filtrados = opcionesProv.filter(opt => opt.text.toLowerCase().includes(val));
+
+            if(filtrados.length > 0) {
+                filtrados.forEach(opt => {
+                    const li = document.createElement('li');
+                    li.className = 'list-group-item custom-dropdown-item';
+                    li.textContent = opt.text;
+                    
+                    li.onclick = function() {
+                        inputBuscarProv.value = opt.text;
+                        hiddenProvId.value = opt.value;
+                        dropdownProv.classList.add('d-none');
+                    };
+                    dropdownProv.appendChild(li);
+                });
+                dropdownProv.classList.remove('d-none');
+            } else {
+                const li = document.createElement('li');
+                li.className = 'list-group-item text-muted text-center py-3';
+                li.textContent = 'No se encontraron resultados';
+                dropdownProv.appendChild(li);
+                dropdownProv.classList.remove('d-none');
+            }
+        });
+
+        document.addEventListener('click', function(e) {
+            if(e.target !== inputBuscarProd) dropdownProd.classList.add('d-none');
+            if(e.target !== inputBuscarProv) dropdownProv.classList.add('d-none');
+        });
+    });
+
+    let lote = [];
+
+    function agregarAlLote() {
+        const inputBusqueda = document.getElementById('inputBuscarProducto');
+        const id = document.getElementById('hiddenProductoId').value;
+        const cantidadInput = document.getElementById('inputCantidad');
+        const precioInput = document.getElementById('inputPrecio');
+
+        if(id === '' || cantidadInput.value === '' || precioInput.value === '') {
+            alert('Por favor, busque y seleccione un producto de la lista, e ingrese la cantidad y precio.');
+            return;
+        }
+
+        const nombre = inputBusqueda.value;
+        const cant = parseFloat(cantidadInput.value);
+        const precio = parseFloat(precioInput.value);
+        const precioVenta = parseFloat(document.getElementById('hiddenPrecioVenta').value);
+
+        if(cant <= 0 || precio <= 0) {
+            alert('La cantidad y el costo por kilo deben ser mayores a cero.');
+            return;
+        }
+
+        if (precio >= precioVenta) {
+            const confirmar = confirm(`¡ADVERTENCIA!\nEl costo de compra por kilo (S/ ${precio.toFixed(2)}) es igual o superior al precio de venta actual (S/ ${precioVenta.toFixed(2)}).\n\n¿Deseas agregar este producto de todas formas?`);
+            if (!confirmar) return;
+        }
+
+        lote.push({ id, nombre, cant, precio });
+        
+        inputBusqueda.value = '';
+        document.getElementById('hiddenProductoId').value = '';
+        document.getElementById('hiddenPrecioVenta').value = '';
+        cantidadInput.value = '';
+        precioInput.value = '';
+        document.getElementById('infoPrecioVenta').classList.add('d-none');
+        
+        renderizarLote();
+    }
+
+    function eliminarDelLote(index) {
+        lote.splice(index, 1);
+        renderizarLote();
+    }
+
+    function renderizarLote() {
+        const tbody = document.getElementById('listaLote');
+        const totalText = document.getElementById('totalCompraText');
+        
+        if (lote.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">Aún no hay productos en la lista.</td></tr>';
+            totalText.innerText = 'S/ 0.00';
+            return;
+        }
+
+        let total = 0;
+        tbody.innerHTML = lote.map((item, index) => {
+            const subtotal = item.cant * item.precio;
+            total += subtotal;
+            return `
+                <tr>
+                    <td class="fw-semibold text-dark">${item.nombre}</td>
+                    <td class="text-center">${item.cant}</td>
+                    <td class="text-end">S/ ${item.precio.toFixed(2)}</td>
+                    <td class="text-end fw-bold text-primary">S/ ${subtotal.toFixed(2)}</td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-link text-danger p-0" onclick="eliminarDelLote(${index})">
+                            <i class="bi bi-x-circle-fill fs-5"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+        totalText.innerText = `S/ ${total.toFixed(2)}`;
+    }
+
+    function procesarCompra() {
+        const proveedorId = document.getElementById('hiddenProveedorId').value;
+        
+        if (!proveedorId) return alert("Debe buscar y seleccionar un proveedor de la lista.");
+        if (lote.length === 0) return alert("Debe agregar al menos un producto a la factura antes de procesarla.");
+
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/compras/guardar';
+
+        form.innerHTML += `<input type="hidden" name="proveedorId" value="${proveedorId}">`;
+        
+        let totalFinal = 0;
+        lote.forEach(item => {
+            totalFinal += (item.cant * item.precio);
+            form.innerHTML += `<input type="hidden" name="productoIds" value="${item.id}">`;
+            form.innerHTML += `<input type="hidden" name="cantidades" value="${item.cant}">`;
+            form.innerHTML += `<input type="hidden" name="precios" value="${item.precio}">`;
+        });
+
+        form.innerHTML += `<input type="hidden" name="totalCompra" value="${totalFinal}">`;
+        
+        const csrfToken = document.querySelector('meta[name="_csrf"]').content;
+        form.innerHTML += `<input type="hidden" name="_csrf" value="${csrfToken}">`;
+
+        document.body.appendChild(form);
+        form.submit();
+    }
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<div th:replace="~{fragments/scripts :: escudo-anti-retroceso}"></div>
+</body>
+</html>

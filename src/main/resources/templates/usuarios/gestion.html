@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Usuarios | Sistema GIAR-V</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f0f2f5; color: #1a202c; overflow-x: hidden; }
+        .sidebar { background: #1e3c72; color: white; height: 100vh; position: sticky; top: 0; overflow-y: auto; width: 260px; transition: all 0.3s; z-index: 1000; }
+        @media (max-width: 767.98px) { .sidebar { position: fixed; transform: translateX(-100%); } .sidebar.show { transform: translateX(0); } }
+        .sidebar::-webkit-scrollbar { width: 6px; }
+        .sidebar::-webkit-scrollbar-thumb { background-color: rgba(255, 255, 255, 0.2); border-radius: 10px; }
+        .sidebar a { color: rgba(255, 255, 255, 0.8); text-decoration: none; padding: 12px 20px; display: block; transition: 0.2s; font-weight: 500; font-size: 0.95rem; }
+        .sidebar a:hover, .sidebar a.active { background: rgba(255, 255, 255, 0.1); color: #ff9800; border-left: 4px solid #ff9800; }
+        .sidebar-heading { color: rgba(255,255,255,0.5); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; padding: 15px 20px 5px; font-weight: bold; }
+        .topbar { background: white; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04); }
+        .main-card { background: white; border: none; border-radius: 16px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); overflow: hidden; }
+        .table thead th { background-color: #f8fafc; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; color: #64748b; border-top: none; padding: 1rem; }
+        .row-inactive { opacity: 0.5; background-color: #f8fafc; }
+        
+        .password-toggle { cursor: pointer; border-left: none; background-color: #f8fafc; color: #6c757d; }
+        .password-toggle:hover { color: #1e3c72; }
+    </style>
+</head>
+<body>
+
+    <div class="d-flex position-relative w-100">
+        
+        <nav class="sidebar flex-shrink-0 shadow-lg" id="sidebarMenu">
+            <div class="p-4 text-center border-bottom border-secondary">
+                <i class="bi bi-shield-lock-fill" style="font-size: 2rem; color: #ff9800;"></i>
+                <h5 class="fw-bold mt-2 mb-0">Menestras Villa</h5>
+                <small class="text-white-50">Administración</small>
+            </div>
+             <div class="mt-2">
+                <div class="sidebar-heading">Principal</div>
+                <a th:href="@{/dashboard}"><i class="bi bi-speedometer2 me-3"></i> Dashboard</a>
+
+                <div class="sidebar-heading mt-2">Operaciones</div>
+                <a th:href="@{/pos}"><i class="bi bi-cart-check me-3"></i> Punto de Venta</a>
+                <a th:href="@{/pos/historial}"><i class="bi bi-clock-history me-3"></i> Mis Ventas</a>
+                <a th:href="@{/proveedores}" sec:authorize="hasAuthority('ADMIN')"><i class="bi bi-building me-3"></i> Proveedores</a>
+                <a th:href="@{/compras}" sec:authorize="hasAuthority('ADMIN')"><i class="bi bi-truck me-3"></i> Ingreso de Compras</a>
+
+                <div class="sidebar-heading mt-2">Almacén y Stock</div>
+                <a th:href="@{/productos}"><i class="bi bi-tags me-3"></i> Catálogo de Productos</a>
+                <a th:href="@{/categorias}" sec:authorize="hasAuthority('ADMIN')"><i class="bi bi-grid me-3"></i> Categorías</a>
+                <a th:href="@{/movimientos}"><i class="bi bi-clipboard-data me-3"></i> Movimientos</a>
+
+                <div sec:authorize="hasAuthority('ADMIN')">
+                    <div class="sidebar-heading mt-2">Análisis</div>
+                    <a th:href="@{/reportes}"><i class="bi bi-file-earmark-bar-graph me-3"></i> Reportes Automatizados</a>
+                </div>
+
+                <div class="sidebar-heading mt-2">Finanzas y Seguridad</div>
+                <a th:href="@{/caja/estado}"><i class="bi bi-piggy-bank me-3"></i> Caja</a>
+                <a th:href="@{/gastos}" sec:authorize="hasAuthority('ADMIN')"><i class="bi bi-wallet2 me-3"></i> Gastos Administrativos</a>
+
+                <div sec:authorize="hasAuthority('ADMIN')">
+                    <a th:href="@{/usuarios}" class="active"><i class="bi bi-people me-3"></i> Gestión de Usuarios</a>
+                    <a th:href="@{/configuracion}"><i class="bi bi-gear me-3"></i> Configuración</a>
+                </div>
+            </div>
+        </nav>
+
+        <div class="flex-grow-1 bg-light w-100" style="min-height: 100vh;">
+            
+            <header class="topbar d-flex justify-content-between align-items-center p-3 px-4 sticky-top">
+                <div class="d-flex align-items-center">
+                    <button id="btnToggleSidebar" class="btn btn-light d-md-none me-3 shadow-sm"><i class="bi bi-list fs-5"></i></button>
+                    <h4 class="mb-0 fw-bold text-secondary text-truncate">Gestión de Usuarios y Accesos</h4>
+                </div>
+                <div class="d-flex align-items-center">
+                    <form th:action="@{/logout}" method="post" class="m-0">
+                        <button type="submit" class="btn btn-outline-danger btn-sm px-3 rounded-pill shadow-sm">
+                            <i class="bi bi-box-arrow-right me-1"></i> Cerrar Sesión
+                        </button>
+                    </form>
+                </div>
+            </header>
+
+            <main class="p-3 p-md-4">
+                
+                <div th:if="${success}" class="alert alert-success border-0 shadow-sm rounded-4 p-3 mb-4"><i class="bi bi-check-circle-fill me-2"></i><span th:text="${success}"></span></div>
+                <div th:if="${error}" class="alert alert-danger border-0 shadow-sm rounded-4 p-3 mb-4"><i class="bi bi-x-circle-fill me-2"></i><span th:text="${error}"></span></div>
+
+                <div class="row g-4">
+                    
+                    <div class="col-12 col-xl-4">
+                        <div class="main-card p-4">
+                            <h5 class="fw-bold mb-4">
+                                <i th:class="${nuevoUsuario.id == null ? 'bi bi-person-plus-fill text-primary me-2' : 'bi bi-person-lines-fill text-warning me-2'}"></i>
+                                <span th:text="${nuevoUsuario.id == null ? 'Registrar Nuevo Usuario' : 'Editar Usuario'}"></span>
+                            </h5>
+                            
+                            <form th:action="@{/usuarios/guardar}" th:object="${nuevoUsuario}" method="post" id="formUsuario">
+                                <input type="hidden" th:field="*{id}">
+                                
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold text-muted text-uppercase">Nombre Completo <span class="text-danger">*</span></label>
+                                    <input type="text" th:field="*{nombreCompleto}" id="nombreCompleto" class="form-control bg-light" 
+                                           placeholder="Ej: María Gómez" required minlength="3"
+                                           oninput="this.value = this.value.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñÜü\s]/g, '').replace(/^\s+/, '');"
+                                           title="Solo letras y espacios.">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold text-muted text-uppercase">Nombre de Usuario <span class="text-danger">*</span></label>
+                                    <input type="text" th:field="*{username}" id="username" class="form-control bg-light" 
+                                           placeholder="Ej: m_gomez.89" required minlength="4" maxlength="15"
+                                           oninput="this.value = this.value.replace(/\s/g, '');"
+                                           title="No se permiten espacios. Puedes usar letras, números y símbolos.">
+                                    <small class="text-muted" style="font-size: 0.7rem;">Sin espacios. Puedes usar letras, números y símbolos ( . - _ ).</small>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold text-muted text-uppercase">Correo Electrónico <span class="text-danger">*</span></label>
+                                    <input type="email" th:field="*{email}" class="form-control bg-light" placeholder="usuario@correo.com" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold text-muted text-uppercase">Contraseña</label>
+                                    <div class="input-group shadow-sm rounded-2">
+                                        <input type="password" th:field="*{password}" id="inputPassword" class="form-control bg-light border-end-0" 
+                                               placeholder="******" minlength="4" th:required="${nuevoUsuario.id == null}">
+                                        <span class="input-group-text password-toggle bg-light border-start-0" id="btnTogglePass">
+                                            <i class="bi bi-eye-slash" id="iconPass"></i>
+                                        </span>
+                                    </div>
+                                    <small th:if="${nuevoUsuario.id != null}" class="text-primary mt-1 d-block"><i class="bi bi-info-circle me-1"></i>Déjalo en blanco para mantener la actual.</small>
+                                </div>
+                                <div class="mb-4">
+                                    <label class="form-label small fw-bold text-muted text-uppercase">Rol en el Sistema <span class="text-danger">*</span></label>
+                                    <select th:field="*{rol.id}" class="form-select bg-light" required>
+                                        <option value="" disabled selected>Seleccione un rol...</option>
+                                        <option th:each="r : ${roles}" th:value="${r.id}" th:text="${r.nombre}"></option>
+                                    </select>
+                                </div>
+                                
+                                <button type="submit" th:class="${nuevoUsuario.id == null ? 'btn btn-primary w-100 fw-bold shadow-sm py-2' : 'btn btn-warning w-100 fw-bold shadow-sm py-2'}" 
+                                        th:text="${nuevoUsuario.id == null ? 'Crear Cuenta' : 'Guardar Cambios'}">
+                                </button>
+                                <a th:if="${nuevoUsuario.id != null}" th:href="@{/usuarios}" class="btn btn-light border w-100 fw-bold shadow-sm mt-2">Cancelar</a>
+                            </form>
+                            </div>
+                    </div>
+
+                    <div class="col-12 col-xl-8">
+                        <div class="main-card">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0 text-nowrap">
+                                    <thead>
+                                        <tr>
+                                            <th class="ps-4">Usuario</th>
+                                            <th>Nombre Completo</th>
+                                            <th>Correo</th> <th>Rol</th>
+                                            <th class="text-center">Estado</th>
+                                            <th class="text-end pe-4">Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr th:each="u : ${usuarios}" th:class="${!u.activo} ? 'row-inactive' : ''">
+                                            <td class="ps-4 fw-bold text-dark" th:text="${u.username}"></td>
+                                            <td th:text="${u.nombreCompleto}"></td>
+                                            <td th:text="${u.email}"></td> <td>
+                                                <span class="badge bg-primary-subtle text-primary border px-2" th:text="${u.rol.nombre}"></span>
+                                            </td>
+                                            <td class="text-center">
+                                                <span th:if="${u.activo}" class="badge bg-success">Activo</span>
+                                                <span th:if="${!u.activo}" class="badge bg-danger">Bloqueado</span>
+                                            </td>
+                                            <td class="text-end pe-4">
+                                                <div class="btn-group shadow-sm rounded">
+                                                    <a th:href="@{/usuarios/editar/{id}(id=${u.id})}" class="btn btn-light btn-sm text-primary border" title="Editar">
+                                                        <i class="bi bi-pencil-fill"></i>
+                                                    </a>
+                                                    <a th:if="${u.activo && u.username != #authentication.name}" th:href="@{/usuarios/estado/{id}(id=${u.id})}" 
+                                                       class="btn btn-light btn-sm text-danger border ms-1" onclick="return confirm('¿Bloquear acceso a este usuario?')" title="Bloquear">
+                                                        <i class="bi bi-lock-fill"></i>
+                                                    </a>
+                                                    <a th:if="${!u.activo}" th:href="@{/usuarios/estado/{id}(id=${u.id})}" 
+                                                       class="btn btn-light btn-sm text-success border ms-1" onclick="return confirm('¿Desbloquear acceso a este usuario?')" title="Desbloquear">
+                                                        <i class="bi bi-unlock-fill"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </main>
+        </div>
+    </div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    document.getElementById('btnToggleSidebar').addEventListener('click', function() {
+        document.getElementById('sidebarMenu').classList.toggle('show');
+    });
+
+    const btnTogglePass = document.getElementById('btnTogglePass');
+    const inputPassword = document.getElementById('inputPassword');
+    const iconPass = document.getElementById('iconPass');
+
+    if(btnTogglePass) {
+        btnTogglePass.addEventListener('click', function() {
+            if (inputPassword.type === "password") {
+                inputPassword.type = "text";
+                iconPass.classList.remove('bi-eye-slash');
+                iconPass.classList.add('bi-eye');
+            } else {
+                inputPassword.type = "password";
+                iconPass.classList.remove('bi-eye');
+                iconPass.classList.add('bi-eye-slash');
+            }
+        });
+    }
+
+    const formUsuario = document.getElementById('formUsuario');
+    if(formUsuario) {
+        formUsuario.addEventListener('submit', function(e) {
+            const nombre = document.getElementById('nombreCompleto');
+            const username = document.getElementById('username');
+            const pass = document.getElementById('inputPassword');
+
+            nombre.value = nombre.value.trim();
+            username.value = username.value.trim();
+            
+            if (pass.value.trim() === "" && pass.hasAttribute('required')) {
+                e.preventDefault();
+                alert("⚠️ La contraseña no puede estar compuesta solo de espacios en blanco.");
+                pass.value = "";
+                pass.focus();
+            }
+        });
+    }
+</script>
+<div th:replace="~{fragments/scripts :: escudo-anti-retroceso}"></div>
+</body>
+</html>

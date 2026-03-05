@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <title>Punto de Venta | Sistema GIAR-V</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; overflow: hidden; }
+        
+        .sidebar { background: #1e3c72; color: white; height: 100vh; overflow-y: auto; width: 260px; transition: all 0.3s ease; z-index: 1050; position: fixed; top: 0; left: 0; transform: translateX(-100%); }
+        .sidebar.show { transform: translateX(0); }
+        .sidebar-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 1040; display: none; }
+        .sidebar-overlay.show { display: block; }
+        .sidebar::-webkit-scrollbar { width: 6px; }
+        .sidebar::-webkit-scrollbar-thumb { background-color: rgba(255, 255, 255, 0.2); border-radius: 10px; }
+        .sidebar a { color: rgba(255, 255, 255, 0.8); text-decoration: none; padding: 12px 20px; display: block; transition: 0.2s; font-weight: 500; font-size: 0.95rem; }
+        .sidebar a:hover, .sidebar a.active { background: rgba(255, 255, 255, 0.1); color: #ff9800; border-left: 4px solid #ff9800; }
+        .sidebar-heading { color: rgba(255,255,255,0.5); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; padding: 15px 20px 5px; font-weight: bold; }
+
+        .pos-wrapper { display: flex; flex-direction: column; height: 100vh; width: 100%; transition: all 0.3s ease; }
+        .pos-content { flex: 1; overflow: hidden; }
+
+        .products-panel { display: flex; flex-direction: column; height: 100%; }
+        .products-list-container { flex: 1; overflow-y: auto; padding-right: 5px; min-height: 0; }
+        
+        .product-list-item { border: none; border-bottom: 1px solid #e2e8f0; cursor: pointer; transition: 0.2s; background: white; padding: 12px 15px; }
+        .product-list-item:hover { background-color: #f8fafc; border-left: 4px solid var(--bs-primary); }
+        .product-list-item:last-child { border-bottom: none; border-radius: 0 0 10px 10px; }
+        .product-list-item:first-child { border-radius: 10px 10px 0 0; }
+        
+        .cart-panel { background: white; border-radius: 20px 0 0 20px; display: flex; flex-direction: column; height: 100%; max-height: 100%; box-shadow: -10px 0 15px -3px rgba(0,0,0,0.05); }
+        
+        @media (max-width: 991px) {
+            body { overflow-y: auto; overflow-x: hidden; }
+            .pos-wrapper { height: auto; min-height: 100vh; }
+            .pos-content { overflow: visible; }
+            .cart-panel { border-radius: 20px 20px 0 0; margin-top: 20px; height: 600px; }
+        }
+
+        .cart-items { flex: 1; overflow-y: auto; padding: 15px; min-height: 0; } 
+        .checkout-box { background: #1e3a8a; color: white; padding: 20px; border-radius: 20px 0 0 0; flex-shrink: 0; }
+        @media (max-width: 991px) { .checkout-box { border-radius: 20px 20px 0 0; } }
+        
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        
+        .btn-check:checked + .btn-outline-light { background-color: #ff9800; border-color: #ff9800; color: white; }
+
+        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <nav class="sidebar shadow-lg" id="sidebarMenu">
+        <div class="p-4 text-center border-bottom border-secondary d-flex justify-content-between align-items-center">
+            <div class="text-start">
+                <h5 class="fw-bold mt-2 mb-0 text-white"><i class="bi bi-box-seam-fill text-warning me-2"></i>Menestras Villa</h5>
+                <small class="text-white-50">Sede Lima</small>
+            </div>
+            <button class="btn btn-sm btn-outline-light border-0" id="btnCloseSidebar"><i class="bi bi-x-lg"></i></button>
+        </div>
+        
+        <div class="mt-2">
+                <div class="sidebar-heading">Principal</div>
+                <a th:href="@{/dashboard}"><i class="bi bi-speedometer2 me-3"></i> Dashboard</a>
+
+                <div class="sidebar-heading mt-2">Operaciones</div>
+                <a th:href="@{/pos}"><i class="bi bi-cart-check me-3"></i> Punto de Venta</a>
+                <a th:href="@{/pos/historial}"><i class="bi bi-clock-history me-3"></i> Mis Ventas</a>
+                <a th:href="@{/proveedores}" sec:authorize="hasAuthority('ADMIN')"><i class="bi bi-building me-3"></i> Proveedores</a>
+                <a th:href="@{/compras}" sec:authorize="hasAuthority('ADMIN')"><i class="bi bi-truck me-3"></i> Ingreso de Compras</a>
+
+                <div class="sidebar-heading mt-2">Almacén y Stock</div>
+                <a th:href="@{/productos}"><i class="bi bi-tags me-3"></i> Catálogo de Productos</a>
+                <a th:href="@{/categorias}" sec:authorize="hasAuthority('ADMIN')"><i class="bi bi-grid me-3"></i> Categorías</a>
+                <a th:href="@{/movimientos}"><i class="bi bi-clipboard-data me-3"></i> Movimientos</a>
+
+                <div sec:authorize="hasAuthority('ADMIN')">
+                    <div class="sidebar-heading mt-2">Análisis</div>
+                    <a th:href="@{/reportes}"><i class="bi bi-file-earmark-bar-graph me-3"></i> Reportes Automatizados</a>
+                </div>
+
+                <div class="sidebar-heading mt-2">Finanzas y Seguridad</div>
+                <a th:href="@{/caja/estado}"><i class="bi bi-piggy-bank me-3"></i> Caja</a>
+                <a th:href="@{/gastos}" sec:authorize="hasAuthority('ADMIN')"><i class="bi bi-wallet2 me-3"></i> Gastos Administrativos</a>
+
+                <div sec:authorize="hasAuthority('ADMIN')">
+                    <a th:href="@{/usuarios}"><i class="bi bi-people me-3"></i> Gestión de Usuarios</a>
+                    <a th:href="@{/configuracion}"><i class="bi bi-gear me-3"></i> Configuración</a>
+                </div>
+            </div>
+    </nav>
+
+<div class="pos-wrapper" id="posWrapper">
+    <nav class="navbar navbar-light bg-white border-bottom px-3 px-md-4 py-2 sticky-top shadow-sm">
+        <div class="d-flex align-items-center">
+            <button id="btnToggleSidebar" class="btn btn-light me-3 shadow-sm"><i class="bi bi-list fs-5"></i></button>
+            <span class="navbar-brand fw-bold text-primary text-truncate m-0">
+                <i class="bi bi-shop me-2"></i> Menestras Villa <small class="text-muted fw-normal ms-1 fs-6 d-none d-sm-inline">Sede Lima</small>
+            </span>
+        </div>
+        
+        <div class="d-flex align-items-center">
+            <span class="me-3 small text-muted d-none d-md-block">Vendedor: <b sec:authentication="name" class="text-dark"></b></span>
+            <form th:action="@{/logout}" method="post" class="m-0">
+                <button type="submit" class="btn btn-outline-danger btn-sm px-3 rounded-pill shadow-sm" title="Cerrar Sesión">
+                    <i class="bi bi-box-arrow-right d-sm-none"></i>
+                    <span class="d-none d-sm-inline"><i class="bi bi-box-arrow-right me-1"></i> Salir</span>
+                </button>
+            </form>
+        </div>
+    </nav>
+
+    <div class="container-fluid pos-content p-0">
+        <div class="row g-0 h-100 flex-column flex-lg-row">
+            
+            <div class="col-12 col-lg-8 py-3 px-3 px-md-4 products-panel">
+                
+                <div th:if="${success}" class="alert alert-success alert-dismissible fade show py-2" role="alert">
+                    <i class="bi bi-check-circle-fill me-2"></i> <span th:text="${success}"></span>
+                    <button type="button" class="btn-close pb-2" data-bs-dismiss="alert"></button>
+                </div>
+                <div th:if="${error}" class="alert alert-danger alert-dismissible fade show py-2" role="alert">
+                    <i class="bi bi-exclamation-octagon-fill me-2"></i> <span th:text="${error}"></span>
+                    <button type="button" class="btn-close pb-2" data-bs-dismiss="alert"></button>
+                </div>
+
+                <div class="card border-0 shadow-sm rounded-4 p-3 mb-3 bg-white">
+                    <div class="row g-2">
+                        <div class="col-12 col-md-7">
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+                                <input type="text" id="searchInput" class="form-control border-start-0 bg-light" placeholder="Buscar por nombre..." onkeyup="aplicarFiltros()">
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-5">
+                            <select id="categoryFilter" class="form-select bg-light" onchange="aplicarFiltros()">
+                                <option value="ALL">Todas las categorías</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="products-list-container shadow-sm rounded-4 bg-white border mb-2">
+                    <div id="productosListContainer">
+                        <div th:each="p : ${productos}" 
+                             class="product-list-item align-items-center raw-product-item"
+                             style="display: none;"
+                             th:data-id="${p.id}"
+                             th:data-nombre="${p.nombre}"
+                             th:data-categoria="${p.categoria.nombre}"
+                             th:data-precio-kilo="${p.precioKilo}"
+                             th:data-precio-saco="${p.precioSaco}"
+                             th:data-stock="${p.stockActualKg}"
+                             th:data-stock-min="${p.stockMinimoKg}"
+                             onclick="agregarItemDesdeData(this)">
+                            
+                            <div class="row w-100 align-items-center m-0">
+                                <div class="col-7 col-md-5 ps-0">
+                                    <h6 class="fw-bold text-dark mb-1 text-truncate" th:text="${p.nombre}"></h6>
+                                    <span class="badge bg-light text-secondary border small" th:text="${p.categoria.nombre}"></span>
+                                </div>
+                                <div class="col-5 col-md-3 text-end text-md-center">
+                                    <small class="d-block text-muted" style="font-size: 0.7rem;">Stock Disp.</small>
+                                    <span th:class="${p.stockActualKg <= p.stockMinimoKg} ? 'text-danger fw-bold small' : 'text-success fw-bold small'"
+                                          th:text="${p.stockActualKg} + ' kg'"></span>
+                                </div>
+                                <div class="col-12 col-md-4 mt-2 mt-md-0 text-start text-md-end pe-0 d-flex justify-content-between justify-content-md-end align-items-center">
+                                    <div class="me-3">
+                                        <small class="text-muted d-block" style="font-size: 0.7rem;">Saco 50kg</small>
+                                        <span class="text-secondary fw-semibold">S/ <span th:text="${p.precioSaco}"></span></span>
+                                    </div>
+                                    <div>
+                                        <small class="text-primary fw-bold d-block" style="font-size: 0.7rem;">Kilo</small>
+                                        <span class="text-primary fw-bold fs-6">S/ <span th:text="${p.precioKilo}"></span></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="noResultsMsg" class="text-center py-5 text-muted" style="display: none;">
+                        <i class="bi bi-search fs-2 d-block mb-2"></i>
+                        No se encontraron productos con esos filtros.
+                    </div>
+                </div>
+
+                <nav aria-label="Navegación de productos" class="mt-auto pt-2">
+                    <ul class="pagination pagination-sm justify-content-center mb-0" id="paginationControls">
+                    </ul>
+                </nav>
+            </div>
+
+            <div class="col-12 col-lg-4 p-0" style="height: 100%;">
+                <div class="cart-panel">
+                    <div class="p-3 border-bottom d-flex justify-content-between align-items-center flex-shrink-0">
+                        <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-cart3 me-2 text-primary"></i>Carrito</h5>
+                        <button class="btn btn-sm btn-outline-danger rounded-pill px-3" onclick="limpiarCarrito()">
+                            <i class="bi bi-trash"></i> Vaciar
+                        </button>
+                    </div>
+
+                    <div class="cart-items" id="cart-list">
+                        <div class="text-center text-muted py-5 mt-5">
+                            <i class="bi bi-cart-dash display-1 opacity-25"></i>
+                            <p class="mt-3 fw-medium">Seleccione productos de la lista</p>
+                        </div>
+                    </div>
+
+                    <div class="checkout-box shadow-lg">
+                        <div class="row gx-2 mb-3">
+                            <div class="col-6">
+                                <span class="opacity-75 d-block mb-1 small fw-medium">Tipo Comprobante <span class="text-warning">*</span></span>
+                                <select class="form-select form-select-sm border-0 shadow-sm" id="tipoComprobante" onchange="ajustarCamposCliente()">
+                                    <option value="NOTA">Nota Simple</option>
+                                    <option value="BOLETA">Boleta</option>
+                                    <option value="FACTURA">Factura</option>
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <span class="opacity-75 d-block mb-1 small fw-medium">Método Pago</span>
+                                <div class="btn-group w-100 shadow-sm" role="group">
+                                    <input type="radio" class="btn-check" name="metodoPago" id="pago-efectivo" value="EFECTIVO" checked>
+                                    <label class="btn btn-outline-light btn-sm px-1" for="pago-efectivo" style="font-size: 0.75rem;">Efec</label>
+
+                                    <input type="radio" class="btn-check" name="metodoPago" id="pago-yape" value="YAPE">
+                                    <label class="btn btn-outline-light btn-sm px-1" for="pago-yape" style="font-size: 0.75rem;">Yape</label>
+
+                                    <input type="radio" class="btn-check" name="metodoPago" id="pago-transf" value="TRANSFERENCIA">
+                                    <label class="btn btn-outline-light btn-sm px-1" for="pago-transf" style="font-size: 0.75rem;">Trnf</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="seccionCliente" class="mb-3" style="display: none;">
+                            <div class="row gx-2">
+                                <div class="col-5">
+                                    <div class="input-group input-group-sm shadow-sm">
+                                        <input type="text" id="documentoCliente" 
+                                               class="form-control border-0" 
+                                               placeholder="Doc *"
+                                               inputmode="numeric"
+                                               oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                                        <button class="btn text-white border-0 shadow-sm" style="background-color: #1e3c72;" type="button" id="btnBuscarDoc" onclick="buscarClienteAPI()" title="Buscar en RENIEC/SUNAT">
+                                            <i class="bi bi-search"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="col-7">
+                                    <input type="text" id="nombreCliente" class="form-control form-control-sm border-0 shadow-sm" placeholder="Razón Social / Nombre *">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center mb-3 pt-3 border-top border-light border-opacity-25">
+                            <h5 class="fw-bold mb-0">TOTAL A PAGAR</h5>
+                            <h2 class="fw-bold mb-0 text-warning" id="final-total">S/ 0.00</h2>
+                        </div>
+                        
+                        <button class="btn btn-warning w-100 fw-bold py-3 rounded-pill shadow" onclick="confirmarVenta()">
+                            <i class="bi bi-printer-fill me-2"></i> PROCESAR VENTA
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalCobro" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content rounded-3 border-0 shadow-lg" style="font-family: 'Inter', sans-serif;">
+      
+      <div class="modal-header border-bottom-0 py-3" style="background-color: #1e3c72; color: white;">
+        <h5 class="modal-title fw-semibold fs-5"><i class="bi bi-wallet2 me-2"></i>Confirmación de Pago</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" style="font-size: 0.8rem;"></button>
+      </div>
+      
+      <div class="modal-body p-4 px-5 bg-white">
+        
+        <div class="text-center mb-4">
+            <span class="d-block text-muted fw-semibold text-uppercase" style="font-size: 0.75rem; letter-spacing: 1px;">Importe Total</span>
+            <span class="fw-bold text-dark" style="font-size: 2.5rem; letter-spacing: -1px;" id="modalTotalPagar">S/ 0.00</span>
+        </div>
+
+        <div class="mb-4">
+            <label for="montoRecibido" class="form-label fw-semibold text-secondary mb-1" style="font-size: 0.85rem;">Efectivo Recibido (S/)</label>
+            <div class="input-group input-group-lg shadow-sm">
+                <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-cash-stack"></i></span>
+                <input type="number" class="form-control border-start-0 fw-bold text-dark bg-light" id="montoRecibido" placeholder="0.00" step="0.10" min="0" autocomplete="off" style="font-size: 1.5rem;">
+            </div>
+        </div>
+
+        <div class="p-3 rounded-3 border text-center" id="cajaVuelto" style="background-color: #f8fafc; transition: all 0.3s ease;">
+            <span class="d-block text-muted fw-semibold text-uppercase mb-1" style="font-size: 0.7rem; letter-spacing: 0.5px;">Vuelto a Entregar</span>
+            <span class="fw-bold text-secondary" style="font-size: 2rem;" id="modalVuelto">S/ 0.00</span>
+        </div>
+
+      </div>
+      
+      <div class="modal-footer border-top p-3 bg-light d-flex justify-content-between">
+        <button type="button" class="btn btn-outline-secondary fw-medium px-4 rounded-2" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn fw-semibold px-4 text-white rounded-2 shadow-sm" id="btnConfirmarCobro" onclick="procesarVentaFinal()" style="background-color: #1e3c72; border-color: #1e3c72;">
+            Procesar Venta <i class="bi bi-arrow-right-short fs-5 align-middle"></i>
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+    let modalCobroInstancia = null;
+    let totalVentaActual = 0;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const btnToggle = document.getElementById('btnToggleSidebar');
+        const btnClose = document.getElementById('btnCloseSidebar');
+        const sidebar = document.getElementById('sidebarMenu');
+        const overlay = document.getElementById('sidebarOverlay');
+        
+        function openSidebar() {
+            sidebar.classList.add('show');
+            overlay.classList.add('show');
+        }
+
+        function closeSidebar() {
+            sidebar.classList.remove('show');
+            overlay.classList.remove('show');
+        }
+
+        btnToggle.addEventListener('click', openSidebar);
+        btnClose.addEventListener('click', closeSidebar);
+        overlay.addEventListener('click', closeSidebar);
+
+        const modalElement = document.getElementById('modalCobro');
+        if(modalElement) {
+            modalCobroInstancia = new bootstrap.Modal(modalElement);
+        }
+
+        const montoRecibidoInput = document.getElementById('montoRecibido');
+        if(montoRecibidoInput) {
+            montoRecibidoInput.addEventListener('input', calcularVuelto);
+        }
+    });
+
+    let todosLosProductos = [];
+    let productosFiltrados = [];
+    let currentPage = 1;
+    const itemsPerPage = 10;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const elementosRaw = document.querySelectorAll('.raw-product-item');
+        const categoriasSet = new Set();
+
+        elementosRaw.forEach(el => {
+            const cat = el.getAttribute('data-categoria');
+            categoriasSet.add(cat);
+            
+            todosLosProductos.push({
+                element: el,
+                nombre: el.getAttribute('data-nombre').toLowerCase(),
+                categoria: cat
+            });
+        });
+
+        const selectCat = document.getElementById('categoryFilter');
+        categoriasSet.forEach(cat => {
+            let option = document.createElement('option');
+            option.value = cat;
+            option.text = cat;
+            selectCat.appendChild(option);
+        });
+
+        aplicarFiltros();
+    });
+
+    function aplicarFiltros() {
+        const textoBusqueda = document.getElementById('searchInput').value.toLowerCase();
+        const categoriaSel = document.getElementById('categoryFilter').value;
+
+        productosFiltrados = todosLosProductos.filter(prod => {
+            const coincideTexto = prod.nombre.includes(textoBusqueda);
+            const coincideCat = (categoriaSel === 'ALL' || prod.categoria === categoriaSel);
+            return coincideTexto && coincideCat;
+        });
+
+        currentPage = 1;
+        renderizarLista();
+    }
+
+    function renderizarLista() {
+        todosLosProductos.forEach(p => p.element.style.display = 'none');
+
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        const endIndex = startIndex + itemsPerPage;
+        const productosPaginados = productosFiltrados.slice(startIndex, endIndex);
+
+        productosPaginados.forEach(p => p.element.style.display = 'flex'); 
+        document.getElementById('noResultsMsg').style.display = productosFiltrados.length === 0 ? 'block' : 'none';
+
+        generarControlesPaginacion();
+    }
+
+    function generarControlesPaginacion() {
+        const totalPages = Math.ceil(productosFiltrados.length / itemsPerPage);
+        const ul = document.getElementById('paginationControls');
+        ul.innerHTML = '';
+
+        if (totalPages <= 1) return;
+        ul.innerHTML += `
+            <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                <button class="page-link shadow-sm" onclick="cambiarPagina(${currentPage - 1})">Anterior</button>
+            </li>
+        `;
+
+        for (let i = 1; i <= totalPages; i++) {
+            ul.innerHTML += `
+                <li class="page-item ${currentPage === i ? 'active' : ''}">
+                    <button class="page-link shadow-sm" onclick="cambiarPagina(${i})">${i}</button>
+                </li>
+            `;
+        }
+
+        ul.innerHTML += `
+            <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                <button class="page-link shadow-sm" onclick="cambiarPagina(${currentPage + 1})">Siguiente</button>
+            </li>
+        `;
+    }
+
+    function cambiarPagina(page) {
+        currentPage = page;
+        renderizarLista();
+    }
+
+    let carrito = [];
+
+    function agregarItemDesdeData(element) {
+        const id = element.getAttribute('data-id');
+        const nombre = element.getAttribute('data-nombre');
+        const precioKilo = parseFloat(element.getAttribute('data-precio-kilo'));
+        const precioSaco = parseFloat(element.getAttribute('data-precio-saco'));
+        
+        agregarItem(id, nombre, precioKilo, precioSaco);
+    }
+
+    function agregarItem(id, nombre, precioKilo, precioSaco) {
+        const unidadPorDefecto = 'KILO'; 
+        
+        const index = carrito.findIndex(i => i.id === id && i.unidad === unidadPorDefecto);
+        
+        if (index > -1) {
+            carrito[index].cantidad++;
+        } else {
+            carrito.push({ id, nombre, precioKilo, precioSaco, cantidad: 1, unidad: unidadPorDefecto });
+        }
+        renderizarCarrito();
+    }
+
+    function cambiarUnidad(indexActual, nuevaUnidad) {
+        const itemActual = carrito[indexActual];
+        
+        const indexExistente = carrito.findIndex((item, idx) => 
+            item.id === itemActual.id && item.unidad === nuevaUnidad && idx !== indexActual
+        );
+
+        if (indexExistente > -1) {
+            carrito[indexExistente].cantidad = parseFloat(carrito[indexExistente].cantidad) + parseFloat(itemActual.cantidad);
+            carrito.splice(indexActual, 1);
+        } else {
+            carrito[indexActual].unidad = nuevaUnidad;
+        }
+        
+        renderizarCarrito();
+    }
+
+    function actualizarCant(index, val) {
+        if (val <= 0) return eliminar(index);
+        carrito[index].cantidad = parseFloat(val);
+        renderizarCarrito();
+    }
+
+    function eliminar(index) {
+        carrito.splice(index, 1);
+        renderizarCarrito();
+    }
+
+    function limpiarCarrito() {
+        if(carrito.length > 0 && confirm('¿Estás seguro de vaciar todo el carrito?')) {
+            carrito = [];
+            renderizarCarrito();
+        }
+    }
+
+    function ajustarCamposCliente() {
+        const tipo = document.getElementById('tipoComprobante').value;
+        const seccion = document.getElementById('seccionCliente');
+        const docInput = document.getElementById('documentoCliente');
+        const nombreInput = document.getElementById('nombreCliente'); 
+
+        seccion.style.display = (tipo === 'NOTA') ? 'none' : 'block';
+        docInput.value = "";
+        
+        nombreInput.value = "";
+        nombreInput.readOnly = false;
+        nombreInput.classList.remove('bg-light', 'text-muted');
+
+        if (tipo === 'BOLETA') {
+            docInput.placeholder = "DNI*";
+            docInput.setAttribute("maxlength", "8");
+        } else if (tipo === 'FACTURA') {
+            docInput.placeholder = "RUC*";
+            docInput.setAttribute("maxlength", "11");
+        }
+    }
+
+    async function buscarClienteAPI() {
+        const documento = document.getElementById('documentoCliente').value;
+        const tipoComprobante = document.getElementById('tipoComprobante').value;
+        const inputNombre = document.getElementById('nombreCliente');
+        const btnBuscar = document.getElementById('btnBuscarDoc');
+
+        if (!documento) {
+            return alert("Por favor, ingrese un número de documento primero.");
+        }
+
+        if (tipoComprobante === 'BOLETA' && documento.length !== 8) {
+            return alert("Para Boleta, el DNI debe tener 8 dígitos.");
+        }
+
+        if (tipoComprobante === 'FACTURA' && documento.length !== 11) {
+            return alert("Para Factura, el RUC debe tener 11 dígitos.");
+        }
+
+        btnBuscar.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+        btnBuscar.disabled = true;
+
+        try {
+            const token = "fa646fe1ed073b4ff304ecc266c7c4f93dca1900decccc0c90b920545bc8";
+            
+            let url = '';
+            let bodyData = {};
+
+            if (documento.length === 8) {
+                url = 'https://api.json.pe/api/dni';
+                bodyData = { dni: documento };
+            } else if (documento.length === 11) {
+                url = 'https://api.json.pe/api/ruc';
+                bodyData = { ruc: documento };
+            }
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(bodyData)
+            });
+            
+            const result = await response.json();
+
+            if (!result.success) {
+                throw new Error(result.message || "Documento no encontrado");
+            }
+
+            if (documento.length === 8) {
+                inputNombre.value = result.data.nombre_completo; 
+            } else if (documento.length === 11) {
+                inputNombre.value = result.data.nombre_o_razon_social; 
+            }
+            
+            inputNombre.readOnly = true;
+            inputNombre.classList.add('bg-light', 'text-muted');
+
+        } catch (error) {
+            alert("No se encontró el documento. Mensaje del servidor: " + error.message);
+            inputNombre.value = '';
+            inputNombre.readOnly = false;
+            inputNombre.classList.remove('bg-light', 'text-muted');
+            inputNombre.focus();
+        } finally {
+            btnBuscar.innerHTML = '<i class="bi bi-search"></i>';
+            btnBuscar.disabled = false;
+        }
+    }
+
+    function renderizarCarrito() {
+        const list = document.getElementById('cart-list');
+        if (carrito.length === 0) {
+            list.innerHTML = '<div class="text-center text-muted py-5 mt-5"><i class="bi bi-cart-dash display-1 opacity-25"></i><p class="mt-3 fw-medium">Seleccione productos de la lista</p></div>';
+            document.getElementById('final-total').innerText = 'S/ 0.00';
+            return;
+        }
+
+        let total = 0;
+        list.innerHTML = carrito.map((item, i) => {
+            const precio = item.unidad === 'SACO' ? item.precioSaco : item.precioKilo;
+            const sub = precio * item.cantidad;
+            total += sub;
+            return `
+                <div class="card mb-2 border border-light shadow-sm p-2 bg-light bg-opacity-50">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <span class="fw-bold small lh-sm text-dark">${item.nombre}</span>
+                        <button class="btn btn-link text-danger p-0 ms-2" onclick="eliminar(${i})" title="Quitar producto">
+                            <i class="bi bi-x-circle-fill fs-5"></i>
+                        </button>
+                    </div>
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div class="d-flex">
+                            <input type="number" step="0.5" min="0.5" class="form-control form-control-sm text-center shadow-sm" style="width: 70px;" value="${item.cantidad}" onchange="actualizarCant(${i}, this.value)">
+                            <select class="form-select form-select-sm ms-1 shadow-sm border-0 bg-white" style="width: 80px;" onchange="cambiarUnidad(${i}, this.value)">
+                                <option value="KILO" ${item.unidad === 'KILO' ? 'selected' : ''}>Kilos</option>
+                                <option value="SACO" ${item.unidad === 'SACO' ? 'selected' : ''}>Sacos</option>
+                            </select>
+                        </div>
+                        <span class="ms-2 fw-bold text-primary fs-6">S/ ${sub.toFixed(2)}</span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        document.getElementById('final-total').innerText = `S/ ${total.toFixed(2)}`;
+        
+        list.scrollTop = list.scrollHeight;
+    }
+
+    function calcularVuelto() {
+        const recibido = parseFloat(document.getElementById('montoRecibido').value) || 0;
+        const vuelto = recibido - totalVentaActual;
+        
+        const btnConfirmar = document.getElementById('btnConfirmarCobro');
+        const vueltoDisplay = document.getElementById('modalVuelto');
+        const cajaVuelto = document.getElementById('cajaVuelto');
+
+        if (vuelto >= 0 && recibido >= totalVentaActual) {
+            vueltoDisplay.innerText = `S/ ${vuelto.toFixed(2)}`;
+            vueltoDisplay.className = "fw-bold text-success";
+            vueltoDisplay.style.fontSize = "2rem";
+            
+            cajaVuelto.className = "p-3 rounded-3 border border-success bg-success bg-opacity-10 text-center";
+            btnConfirmar.disabled = false;
+        } else {
+            btnConfirmar.disabled = true;
+            cajaVuelto.className = "p-3 rounded-3 border text-center";
+            cajaVuelto.style.backgroundColor = "#f8fafc";
+            
+            if (recibido > 0) {
+                vueltoDisplay.innerText = `Faltan S/ ${Math.abs(vuelto).toFixed(2)}`;
+                vueltoDisplay.className = "fw-bold text-danger";
+                vueltoDisplay.style.fontSize = "1.5rem"; 
+            } else {
+                vueltoDisplay.innerText = "S/ 0.00";
+                vueltoDisplay.className = "fw-bold text-secondary";
+                vueltoDisplay.style.fontSize = "2rem";
+            }
+        }
+    }
+
+    function confirmarVenta() {
+        if (carrito.length === 0) return alert("Por favor, agregue al menos un producto al carrito.");
+        
+        const tipoComprobante = document.getElementById('tipoComprobante').value;
+        const clienteNombre = document.getElementById('nombreCliente').value;
+        const clienteDoc = document.getElementById('documentoCliente').value;
+
+        if(tipoComprobante !== 'NOTA') {
+            if(!clienteNombre || !clienteDoc) {
+                return alert("Para Boletas y Facturas debe ingresar el Nombre/Razón Social y Documento del cliente.");
+            }
+            
+            if(tipoComprobante === 'BOLETA' && clienteDoc.length !== 8) {
+                return alert("El DNI debe tener exactamente 8 dígitos.");
+            }
+            
+            if(tipoComprobante === 'FACTURA' && clienteDoc.length !== 11) {
+                return alert("El RUC debe tener exactamente 11 dígitos.");
+            }
+        }
+
+        totalVentaActual = parseFloat(document.getElementById('final-total').innerText.replace('S/ ', ''));
+        document.getElementById('modalTotalPagar').innerText = `S/ ${totalVentaActual.toFixed(2)}`;
+        
+        const inputRecibido = document.getElementById('montoRecibido');
+        inputRecibido.value = '';
+        document.getElementById('btnConfirmarCobro').disabled = true;
+        calcularVuelto();
+
+        if (modalCobroInstancia) {
+            modalCobroInstancia.show();
+            setTimeout(() => { inputRecibido.focus(); }, 500);
+        }
+    }
+
+    function procesarVentaFinal() {
+        document.getElementById('btnConfirmarCobro').disabled = true;
+        document.getElementById('btnConfirmarCobro').innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Procesando...';
+
+        const tipoComprobante = document.getElementById('tipoComprobante').value;
+        const clienteNombre = document.getElementById('nombreCliente').value;
+        const clienteDoc = document.getElementById('documentoCliente').value;
+
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/pos/guardar';
+
+        carrito.forEach(item => {
+            form.innerHTML += `<input type="hidden" name="productoIds" value="${item.id}">`;
+            form.innerHTML += `<input type="hidden" name="unidades" value="${item.unidad}">`;
+            form.innerHTML += `<input type="hidden" name="cantidades" value="${item.cantidad}">`;
+        });
+
+        form.innerHTML += `<input type="hidden" name="totalBruto" value="${totalVentaActual}">`;
+        
+        const metodo = document.querySelector('input[name="metodoPago"]:checked').value;
+
+        form.innerHTML += `<input type="hidden" name="metodoPago" value="${metodo}">`;
+        form.innerHTML += `<input type="hidden" name="tipoComprobante" value="${tipoComprobante}">`;
+        form.innerHTML += `<input type="hidden" name="clienteNombre" value="${clienteNombre}">`;
+        form.innerHTML += `<input type="hidden" name="clienteDoc" value="${clienteDoc}">`;
+        
+        const csrfToken = document.querySelector('meta[name="_csrf"]').content;
+        form.innerHTML += `<input type="hidden" name="_csrf" value="${csrfToken}">`;
+
+        document.body.appendChild(form);
+        form.submit();
+    }
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<div th:replace="~{fragments/scripts :: escudo-anti-retroceso}"></div>
+
+</body>
+</html>

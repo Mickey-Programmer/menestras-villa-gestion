@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Caja | Sistema GIAR-V</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    
+    <style>
+        :root {
+            --mv-primary: #1e3a8a;
+            --mv-accent: #3b82f6;
+            --mv-success: #10b981;
+            --mv-danger: #ef4444;
+            --mv-warning: #f59e0b;
+            --mv-bg: #f8fafc;
+        }
+
+        body { font-family: 'Inter', sans-serif; background-color: var(--mv-bg); color: #1e293b; overflow-x: hidden; }
+        
+        .sidebar { background: #1e3c72; color: white; height: 100vh; overflow-y: auto; width: 260px; transition: all 0.3s ease; z-index: 1000; position: sticky; top: 0; }
+        .sidebar::-webkit-scrollbar { width: 6px; }
+        .sidebar::-webkit-scrollbar-thumb { background-color: rgba(255, 255, 255, 0.2); border-radius: 10px; }
+        @media (max-width: 767.98px) {
+            .sidebar { position: fixed; transform: translateX(-100%); }
+            .sidebar.show { transform: translateX(0); }
+        }
+        .sidebar a { color: rgba(255, 255, 255, 0.8); text-decoration: none; padding: 12px 20px; display: block; transition: 0.2s; font-weight: 500; font-size: 0.95rem; }
+        .sidebar a:hover, .sidebar a.active { background: rgba(255, 255, 255, 0.1); color: #ff9800; border-left: 4px solid #ff9800; }
+        .sidebar-heading { color: rgba(255,255,255,0.5); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; padding: 15px 20px 5px; font-weight: bold; }
+        .topbar { background: white; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04); }
+
+        .main-card { border: none; border-radius: 24px; background: white; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05); overflow: hidden; }
+        .metric-card { background: #ffffff; border: 1px solid #f1f5f9; border-radius: 20px; padding: 1.5rem; transition: all 0.3s ease; }
+        .metric-card:hover { border-color: var(--mv-accent); transform: translateY(-2px); }
+        .status-pill { font-size: 0.75rem; text-transform: uppercase; font-weight: 700; padding: 0.5rem 1.25rem; border-radius: 100px; letter-spacing: 0.05em; }
+
+        .input-group-premium { background: #f1f5f9; border-radius: 16px; border: 2px solid transparent; transition: 0.3s; padding: 0.5rem 1rem; width: 100%; }
+        .input-group-premium:focus-within { background: white; border-color: var(--mv-accent); box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1); }
+        .input-group-premium input { background: transparent; border: none; font-weight: 600; font-size: 1.25rem; width: 100%; outline: none; box-shadow: none; }
+
+        .balance-display { border-radius: 20px; padding: 1.5rem; background: #f8fafc; border: 2px dashed #e2e8f0; display: flex; align-items: center; justify-content: space-between; }
+
+        .btn-confirm { background: var(--mv-danger); color: white; border: none; border-radius: 16px; padding: 1.25rem; font-weight: 700; transition: 0.3s; }
+        .btn-confirm:hover { background: #dc2626; transform: scale(1.01); box-shadow: 0 10px 15px -3px rgba(239, 68, 68, 0.2); color: white; }
+
+        .btn-primary-custom { background: var(--mv-primary); color: white; border: none; border-radius: 16px; font-weight: bold; transition: 0.3s; }
+        .btn-primary-custom:hover { background: #152c6b; color: white; }
+
+        .fade-in-up { animation: fadeInUp 0.5s ease-out; }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
+
+        @media (max-width: 576px) {
+            .balance-display { flex-direction: column; text-align: center; gap: 10px; }
+            .metric-card h3 { font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="d-flex position-relative w-100">
+        
+        <nav class="sidebar flex-shrink-0 shadow-lg" id="sidebarMenu">
+            <div class="p-4 text-center border-bottom border-secondary">
+                <i class="bi bi-box-seam-fill" style="font-size: 2rem; color: #ff9800;"></i>
+                <h5 class="fw-bold mt-2 mb-0">Menestras Villa</h5>
+                <small class="text-white-50">Sede Lima</small>
+            </div>
+            
+            <div class="mt-2">
+                <div class="sidebar-heading">Principal</div>
+                <a th:href="@{/dashboard}"><i class="bi bi-speedometer2 me-3"></i> Dashboard</a>
+
+                <div class="sidebar-heading mt-2">Operaciones</div>
+                <a th:href="@{/pos}"><i class="bi bi-cart-check me-3"></i> Punto de Venta</a>
+                <a th:href="@{/pos/historial}"><i class="bi bi-clock-history me-3"></i> Mis Ventas</a>
+                <a th:href="@{/proveedores}" sec:authorize="hasAuthority('ADMIN')"><i class="bi bi-building me-3"></i> Proveedores</a>
+                <a th:href="@{/compras}" sec:authorize="hasAuthority('ADMIN')"><i class="bi bi-truck me-3"></i> Ingreso de Compras</a>
+
+                <div class="sidebar-heading mt-2">Almacén y Stock</div>
+                <a th:href="@{/productos}"><i class="bi bi-tags me-3"></i> Catálogo de Productos</a>
+                <a th:href="@{/categorias}" sec:authorize="hasAuthority('ADMIN')"><i class="bi bi-grid me-3"></i> Categorías</a>
+                <a th:href="@{/movimientos}"><i class="bi bi-clipboard-data me-3"></i> Movimientos</a>
+
+                <div sec:authorize="hasAuthority('ADMIN')">
+                    <div class="sidebar-heading mt-2">Análisis</div>
+                    <a th:href="@{/reportes}"><i class="bi bi-file-earmark-bar-graph me-3"></i> Reportes Automatizados</a>
+                </div>
+
+                <div class="sidebar-heading mt-2">Finanzas y Seguridad</div>
+                <a th:href="@{/caja/estado}" class="active"><i class="bi bi-piggy-bank me-3"></i> Caja</a>
+                <a th:href="@{/gastos}" sec:authorize="hasAuthority('ADMIN')"><i class="bi bi-wallet2 me-3"></i> Gastos Administrativos</a>
+
+                <div sec:authorize="hasAuthority('ADMIN')">
+                    <a th:href="@{/usuarios}"><i class="bi bi-people me-3"></i> Gestión de Usuarios</a>
+                    <a th:href="@{/configuracion}"><i class="bi bi-gear me-3"></i> Configuración</a>
+                </div>
+            </div>
+        </nav>
+
+        <div class="flex-grow-1 w-100" style="min-height: 100vh;">
+            
+            <header class="topbar d-flex justify-content-between align-items-center p-3 px-4 sticky-top">
+                <div class="d-flex align-items-center">
+                    <button id="btnToggleSidebar" class="btn btn-light d-md-none me-3 shadow-sm"><i class="bi bi-list fs-5"></i></button>
+                    <h4 class="mb-0 fw-bold text-secondary d-none d-sm-block">Gestión Financiera</h4>
+                </div>
+                
+                <div class="d-flex align-items-center">
+                    <div class="me-3 text-end d-none d-sm-block">
+                        <small class="text-muted d-block">Usuario Autenticado</small>
+                        <span class="fw-bold text-dark" sec:authentication="name">Admin</span>
+                    </div>
+                    <form th:action="@{/logout}" method="post" class="m-0">
+                        <button type="submit" class="btn btn-outline-danger btn-sm px-3 rounded-pill shadow-sm">
+                            <i class="bi bi-box-arrow-right me-1 d-sm-none"></i>
+                            <span class="d-none d-sm-inline"><i class="bi bi-box-arrow-right me-1"></i> Cerrar Sesión</span>
+                        </button>
+                    </form>
+                </div>
+            </header>
+
+            <main class="p-3 p-md-4 fade-in-up">
+
+                <div th:if="${success}" class="alert alert-success border-0 shadow-sm rounded-4 p-3 mb-4 d-flex align-items-center mx-auto">
+                    <i class="bi bi-check-circle-fill me-3 fs-4"></i>
+                    <div class="fw-medium" th:text="${success}"></div>
+                </div>
+
+                <div th:if="${warning}" class="alert alert-warning border-0 shadow-sm rounded-4 p-3 mb-4 d-flex align-items-center mx-auto" style="color: #92400e; background-color: #fffbeb;">
+                    <i class="bi bi-exclamation-triangle-fill me-3 fs-4"></i>
+                    <div class="fw-medium" th:text="${warning}"></div>
+                </div>
+
+                <div th:if="${error}" class="alert alert-danger border-0 shadow-sm rounded-4 p-3 mb-4 d-flex align-items-center mx-auto">
+                    <i class="bi bi-x-circle-fill me-3 fs-4"></i>
+                    <div class="fw-medium" th:text="${error}"></div>
+                </div>
+
+                <div th:if="${caja != null}" class="main-card p-4 p-md-5 mb-4 mx-auto" style="max-width: 1200px;">
+                    
+                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start mb-4 mb-md-5 gap-3">
+                        <div>
+                            <span class="status-pill mb-2 d-inline-block border text-success bg-success bg-opacity-10">
+                                <i class="bi bi-circle-fill me-2 small"></i> Sesión en Curso
+                            </span>
+                            <h2 class="fw-bold mb-1 fs-3 fs-md-2 text-dark">Arqueo de Jornada</h2>
+                            <p class="text-muted small mb-0">Resumen de ingresos y egresos generados hasta el momento.</p>
+                        </div>
+                        <div class="text-start text-md-end bg-light p-3 rounded-4 border w-100 w-md-auto shadow-sm">
+                            <small class="text-muted d-block text-uppercase fw-bold" style="font-size: 0.7rem;">Responsable de Turno</small>
+                            <span class="fw-semibold text-primary" th:text="${caja.usuario.nombreCompleto}">Admin</span>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 g-md-4 mb-4 mb-md-5">
+                        <div class="col-12 col-sm-6 col-lg-3 text-center">
+                            <div class="metric-card h-100 d-flex flex-column justify-content-center shadow-sm">
+                                <div class="text-muted small fw-bold text-uppercase mb-2">Fondo de Apertura</div>
+                                <h4 class="fw-bold text-dark mb-0 text-break" th:text="'S/ ' + ${#numbers.formatDecimal(caja.montoInicial, 1, 'COMMA', 2, 'POINT')}"></h4>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-lg-3 text-center">
+                            <div class="metric-card h-100 d-flex flex-column justify-content-center border-success border-opacity-25 bg-success bg-opacity-10 shadow-sm">
+                                <div class="text-success small fw-bold text-uppercase mb-2"><i class="bi bi-arrow-up-circle me-1"></i>Ingresos (Ventas)</div>
+                                <h4 class="fw-bold text-success mb-0 text-break" th:text="'+ S/ ' + ${#numbers.formatDecimal(totalVentas, 1, 'COMMA', 2, 'POINT')}"></h4>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-lg-3 text-center">
+                            <div class="metric-card h-100 d-flex flex-column justify-content-center border-danger border-opacity-25 bg-danger bg-opacity-10 shadow-sm">
+                                <div class="text-danger small fw-bold text-uppercase mb-2"><i class="bi bi-arrow-down-circle me-1"></i>Egresos (Gastos)</div>
+                                <h4 class="fw-bold text-danger mb-0 text-break" th:text="'- S/ ' + ${totalGastos != null ? #numbers.formatDecimal(totalGastos, 1, 'COMMA', 2, 'POINT') : '0.00'}"></h4>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-lg-3 text-center">
+                            <div class="metric-card h-100 d-flex flex-column justify-content-center bg-dark text-white border-0 shadow-lg">
+                                <div class="text-white-50 small fw-bold text-uppercase mb-2">Total Esperado en Caja</div>
+                                <h3 class="fw-bold mb-0 text-break text-warning" th:text="'S/ ' + ${#numbers.formatDecimal(montoEsperado, 1, 'COMMA', 2, 'POINT')}"></h3>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row justify-content-center border-top pt-5">
+                        <div class="col-12 col-lg-10">
+                            <div class="p-4 p-md-5 border rounded-4 bg-white shadow-sm">
+                                <h5 class="fw-bold mb-4 border-bottom pb-3 text-dark"><i class="bi bi-calculator me-2 text-primary"></i>Declaración y Cuadre de Caja</h5>
+                                <form th:action="@{/caja/cerrar}" method="post">
+                                    <div class="row g-4">
+                                        <div class="col-12 col-md-6">
+                                            <label class="form-label small fw-bold text-muted text-uppercase">Dinero Físico/Real Contado</label>
+                                            <div class="input-group-premium d-flex align-items-center">
+                                                <span class="text-muted me-2 fs-5 fw-bold">S/</span>
+                                                <input type="number" step="0.10" min="0" name="montoReal" id="montoReal" 
+                                                       placeholder="0.00" oninput="calcularDiferencia()" required class="w-100 bg-transparent border-0 outline-0">
+                                            </div>
+                                            <small class="text-muted mt-2 d-block"><i class="bi bi-info-circle me-1"></i>Suma el efectivo, Yape y transferencias.</small>
+                                        </div>
+                                        
+                                        <div class="col-12 col-md-6">
+                                            <label class="form-label small fw-bold text-muted text-uppercase">Balance de Cuadre</label>
+                                            <div id="balance-box" class="balance-display shadow-sm">
+                                                <div class="text-center text-md-start">
+                                                    <h4 class="fw-bold mb-0 text-break" id="txt-diferencia">S/ 0.00</h4>
+                                                    <small id="status-label" class="text-muted fw-medium">Introduce monto real</small>
+                                                </div>
+                                                <div id="icon-status" class="mt-2 mt-md-0">
+                                                    <i class="bi bi-dash-circle fs-2 text-muted"></i>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-12 pt-4">
+                                            <input type="hidden" id="montoEsperadoHidden" th:value="${montoEsperado}">
+                                            <button type="submit" class="btn btn-confirm w-100 shadow py-3 fs-6"
+                                                    onclick="return confirm('ATENCIÓN: ¿Confirmas el cierre de caja con los montos ingresados? Esta operación es irreversible.')">
+                                                <i class="bi bi-lock-fill me-2"></i> CERRAR TURNO Y GENERAR REPORTE
+                                            </button>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div th:if="${caja == null}" class="main-card py-5 px-3 px-md-4 text-center mx-auto shadow-sm border" style="max-width: 800px; margin-top: 5vh;">
+                    <div class="py-3 py-md-5">
+                        <div class="bg-light d-inline-flex p-4 rounded-circle mb-4 border shadow-sm">
+                            <i class="bi bi-door-closed text-secondary display-4"></i>
+                        </div>
+                        <h2 class="fw-bold fs-2 text-dark">La Caja está Cerrada</h2>
+                        <p class="text-muted mb-5 mx-auto" style="max-width: 500px;">
+                            Actualmente no hay una sesión activa en la Sede Lima. Debes iniciar la jornada ingresando el fondo base para habilitar las ventas.
+                        </p>
+                        
+                        <form th:action="@{/caja/abrir}" method="post" class="mx-auto" style="max-width: 450px;">
+                            <div class="card p-4 border bg-white rounded-4 shadow-sm text-start">
+                                <label class="form-label small fw-bold text-uppercase text-secondary mb-3"><i class="bi bi-cash-stack me-2 text-primary"></i>Fondo de Apertura (Monedas/Sencillo)</label>
+                                <div class="input-group-premium mb-4 bg-light border shadow-sm mx-auto d-flex align-items-center">
+                                    <span class="text-primary me-2 fw-bold fs-5">S/</span>
+                                    <input type="number" step="0.10" min="0" name="montoInicial" placeholder="0.00" value="0.00" required 
+                                           oninput="this.value = Math.abs(this.value)" class="w-100 bg-transparent border-0 outline-0 text-dark">
+                                </div>
+                                <button type="submit" class="btn btn-primary-custom w-100 shadow py-3 text-uppercase fw-bold" style="letter-spacing: 1px;">
+                                    <i class="bi bi-unlock-fill me-2"></i> Abrir Caja Ahora
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const btnToggle = document.getElementById('btnToggleSidebar');
+        const sidebar = document.getElementById('sidebarMenu');
+        
+        btnToggle.addEventListener('click', function() {
+            sidebar.classList.toggle('show');
+        });
+
+        document.addEventListener('click', function(event) {
+            const isClickInsideSidebar = sidebar.contains(event.target);
+            const isClickOnToggleBtn = btnToggle.contains(event.target);
+            if (!isClickInsideSidebar && !isClickOnToggleBtn && window.innerWidth < 768) {
+                sidebar.classList.remove('show');
+            }
+        });
+    });
+
+    function calcularDiferencia() {
+        const esperado = parseFloat(document.getElementById('montoEsperadoHidden').value);
+        const inputReal = document.getElementById('montoReal').value;
+        // Evitamos que peguen valores negativos
+        const real = Math.abs(parseFloat(inputReal)) || 0;
+        const diferencia = real - esperado;
+        
+        const txtDiff = document.getElementById('txt-diferencia');
+        const box = document.getElementById('balance-box');
+        const iconStatus = document.getElementById('icon-status');
+        const label = document.getElementById('status-label');
+
+        if (inputReal === '') {
+            txtDiff.innerText = "S/ 0.00";
+            box.style.borderColor = "#e2e8f0";
+            box.style.background = "#f8fafc";
+            txtDiff.style.color = "#1e293b";
+            label.innerText = "Introduce monto real";
+            iconStatus.innerHTML = '<i class="bi bi-dash-circle fs-2 text-muted"></i>';
+            return;
+        }
+
+        txtDiff.innerText = "S/ " + Math.abs(diferencia).toFixed(2);
+
+        if (Math.abs(diferencia) < 0.01) {
+            box.style.borderColor = "var(--mv-success)";
+            box.style.background = "#f0fdf4";
+            txtDiff.style.color = "var(--mv-success)";
+            label.innerText = "Caja Cuadrada Exacta";
+            iconStatus.innerHTML = '<i class="bi bi-check-circle-fill fs-2 text-success"></i>';
+        } else if (diferencia < 0) {
+            box.style.borderColor = "var(--mv-danger)";
+            box.style.background = "#fef2f2";
+            txtDiff.style.color = "var(--mv-danger)";
+            label.innerText = "Faltante en Caja";
+            iconStatus.innerHTML = '<i class="bi bi-exclamation-circle-fill fs-2 text-danger"></i>';
+        } else {
+            box.style.borderColor = "var(--mv-warning)";
+            box.style.background = "#fffbeb";
+            txtDiff.style.color = "#92400e";
+            label.innerText = "Sobrante en Caja";
+            iconStatus.innerHTML = '<i class="bi bi-plus-circle-fill fs-2 text-warning"></i>';
+        }
+    }
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<div th:replace="~{fragments/scripts :: escudo-anti-retroceso}"></div>
+</body>
+</html>

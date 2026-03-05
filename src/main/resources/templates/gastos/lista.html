@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finanzas | Sistema GIAR-V</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; color: #1a202c; overflow-x: hidden; }
+        .sidebar { background: #1e3c72; color: white; height: 100vh; overflow-y: auto; width: 260px; transition: all 0.3s ease; z-index: 1000; position: sticky; top: 0; }
+        .sidebar::-webkit-scrollbar { width: 6px; }
+        .sidebar::-webkit-scrollbar-thumb { background-color: rgba(255, 255, 255, 0.2); border-radius: 10px; }
+        @media (max-width: 767.98px) {
+            .sidebar { position: fixed; transform: translateX(-100%); }
+            .sidebar.show { transform: translateX(0); }
+        }
+        .sidebar a { color: rgba(255, 255, 255, 0.8); text-decoration: none; padding: 12px 20px; display: block; transition: 0.2s; font-weight: 500; font-size: 0.95rem; }
+        .sidebar a:hover, .sidebar a.active { background: rgba(255, 255, 255, 0.1); color: #ff9800; border-left: 4px solid #ff9800; }
+        .sidebar-heading { color: rgba(255,255,255,0.5); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; padding: 15px 20px 5px; font-weight: bold; }
+        .topbar { background: white; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04); }
+        .main-card { background: white; border: none; border-radius: 16px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05); overflow: hidden; }
+        .badge-mensual { background-color: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; }
+        .badge-quincenal { background-color: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+        .badge-deposito { background-color: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+        .btn-action { border-radius: 10px; transition: 0.2s; }
+        .empty-state { padding: 4rem; text-align: center; color: #94a3b8; }
+    </style>
+</head>
+<body>
+
+    <div class="d-flex position-relative w-100">
+        
+        <nav class="sidebar flex-shrink-0 shadow-lg" id="sidebarMenu">
+            <div class="p-4 text-center border-bottom border-secondary">
+                <i class="bi bi-box-seam-fill" style="font-size: 2rem; color: #ff9800;"></i>
+                <h5 class="fw-bold mt-2 mb-0">Menestras Villa</h5>
+                <small class="text-white-50">Sede Lima</small>
+            </div>
+            
+            <div class="mt-2">
+                <div class="sidebar-heading">Principal</div>
+                <a th:href="@{/dashboard}"><i class="bi bi-speedometer2 me-3"></i> Dashboard</a>
+
+                <div class="sidebar-heading mt-2">Operaciones</div>
+                <a th:href="@{/pos}"><i class="bi bi-cart-check me-3"></i> Punto de Venta</a>
+                <a th:href="@{/pos/historial}"><i class="bi bi-clock-history me-3"></i> Mis Ventas</a>
+                <a th:href="@{/proveedores}" sec:authorize="hasAuthority('ADMIN')"><i class="bi bi-building me-3"></i> Proveedores</a>
+                <a th:href="@{/compras}" sec:authorize="hasAuthority('ADMIN')"><i class="bi bi-truck me-3"></i> Ingreso de Compras</a>
+
+                <div class="sidebar-heading mt-2">Almacén y Stock</div>
+                <a th:href="@{/productos}"><i class="bi bi-tags me-3"></i> Catálogo de Productos</a>
+                <a th:href="@{/categorias}" sec:authorize="hasAuthority('ADMIN')"><i class="bi bi-grid me-3"></i> Categorías</a>
+                <a th:href="@{/movimientos}"><i class="bi bi-clipboard-data me-3"></i> Movimientos</a>
+
+                <div sec:authorize="hasAuthority('ADMIN')">
+                    <div class="sidebar-heading mt-2">Análisis</div>
+                    <a th:href="@{/reportes}"><i class="bi bi-file-earmark-bar-graph me-3"></i> Reportes Automatizados</a>
+                </div>
+
+                <div class="sidebar-heading mt-2">Finanzas y Seguridad</div>
+                <a th:href="@{/caja/estado}"><i class="bi bi-piggy-bank me-3"></i> Caja</a>
+                <a th:href="@{/gastos}" sec:authorize="hasAuthority('ADMIN')"><i class="bi bi-wallet2 me-3"></i> Gastos Administrativos</a>
+
+                <div sec:authorize="hasAuthority('ADMIN')">
+                    <a th:href="@{/usuarios}"><i class="bi bi-people me-3"></i> Gestión de Usuarios</a>
+                    <a th:href="@{/configuracion}"><i class="bi bi-gear me-3"></i> Configuración</a>
+                </div>
+            </div>
+        </nav>
+
+        <div class="flex-grow-1 w-100" style="min-height: 100vh;">
+            
+            <header class="topbar d-flex justify-content-between align-items-center p-3 px-4 sticky-top">
+                <div class="d-flex align-items-center">
+                    <button id="btnToggleSidebar" class="btn btn-light d-md-none me-3 shadow-sm"><i class="bi bi-list fs-5"></i></button>
+                    <h4 class="mb-0 fw-bold text-secondary d-none d-sm-block">Egresos & Depósitos</h4>
+                </div>
+                
+                <div class="d-flex align-items-center text-end">
+                    <div class="me-3 d-none d-sm-block">
+                        <small class="text-muted d-block">Usuario Autenticado</small>
+                        <span class="fw-bold text-dark" sec:authentication="name">Usuario</span>
+                    </div>
+                    <form th:action="@{/logout}" method="post" class="m-0">
+                        <button type="submit" class="btn btn-outline-danger btn-sm px-3 rounded-pill shadow-sm">
+                            <i class="bi bi-box-arrow-right"></i> <span class="d-none d-sm-inline">Salir</span>
+                        </button>
+                    </form>
+                </div>
+            </header>
+
+            <main class="p-3 p-md-4">
+                
+                <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
+                    <div>
+                        <h2 class="fw-bold mb-0 text-dark" style="letter-spacing: -1px;">Movimientos de Caja</h2>
+                        <p class="text-muted mb-0 small">Registro de gastos diarios y depósitos a cuenta.</p>
+                    </div>
+                    <button class="btn btn-primary px-4 fw-semibold shadow-sm btn-action" data-bs-toggle="modal" data-bs-target="#modalGasto" style="background: #1e3a8a;">
+                        <i class="bi bi-plus-lg me-2"></i> Registrar Movimiento
+                    </button>
+                </div>
+
+                <div th:if="${success}" class="alert alert-success border-0 shadow-sm rounded-4 p-3 mb-4 d-flex align-items-center">
+                    <i class="bi bi-check-circle-fill me-3 fs-4"></i>
+                    <div th:text="${success}"></div>
+                </div>
+
+                <div class="main-card">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0 text-nowrap">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-4">Fecha</th>
+                                    <th>Categoría</th>
+                                    <th>Descripción / Detalle</th>
+                                    <th class="text-end">Monto Total</th>
+                                    <th class="text-center">Responsable</th>
+                                    <th class="text-center pe-4">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tablaGastos">
+                                <tr th:if="${#lists.isEmpty(gastos)}">
+                                    <td colspan="6" class="empty-state">
+                                        <i class="bi bi-card-checklist fs-1 d-block mb-3"></i>
+                                        <h5 class="fw-bold text-dark">Sin movimientos registrados</h5>
+                                    </td>
+                                </tr>
+                                <tr th:each="g : ${gastos}" class="fila-gasto" style="display: none;"
+                                    th:data-id="${g.id}" th:data-cat="${g.categoria}" th:data-frec="${g.frecuencia}"
+                                    th:data-desc="${g.descripcion}" th:data-monto="${g.monto}" th:data-fecha="${g.fechaPago}">
+                                    
+                                    <td class="ps-4 text-muted fw-medium" th:text="${#temporals.format(g.fechaPago, 'dd/MM/yyyy')}"></td>
+                                    <td>
+                                        <span th:class="${g.categoria == 'DEPÓSITO BANCARIO' ? 'badge badge-deposito px-3 py-2 rounded-pill shadow-sm' : 'badge bg-light text-dark border px-3 py-2 rounded-pill shadow-sm'}" 
+                                              th:text="${g.categoria}"></span>
+                                    </td>
+                                    <td class="fw-bold text-dark" th:text="${g.descripcion}"></td>
+                                    <td class="text-end fw-bold text-danger fs-5" th:text="${'S/ ' + g.monto}"></td>
+                                    
+                                    <td class="text-center text-muted small">
+                                        <i class="bi bi-person-circle me-1"></i> <span th:text="${g.responsable}"></span>
+                                    </td>
+
+                                    <td class="text-center pe-4">
+                                        <button class="btn btn-outline-primary btn-sm rounded-pill px-3" onclick="abrirEditar(this)">
+                                            <i class="bi bi-pencil-square me-1"></i> Editar
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="card-footer bg-white border-top-0 py-3 mt-2">
+                        <nav aria-label="Navegación de páginas">
+                            <ul class="pagination justify-content-center mb-0" id="paginationControls"></ul>
+                        </nav>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modalGasto" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header bg-primary text-white p-4 border-0">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-wallet2 me-2"></i>Nuevo Movimiento de Salida</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form th:action="@{/gastos/guardar}" method="post" class="needs-validation" novalidate>
+                    <div class="modal-body p-4">
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-uppercase">Categoría <span class="text-danger">*</span></label>
+                            <select name="categoria" class="form-select shadow-sm" required>
+                                <option value="" selected disabled>Seleccione...</option>
+                                <option value="ALQUILER">Alquiler del Local</option>
+                                <option value="LUZ">Servicio de Luz</option>
+                                <option value="AGUA">Servicio de Agua</option>
+                                <option value="INTERNET">Internet / Telefonía</option>
+                                <option value="PERSONAL">Pago de Personal (Planilla)</option>
+                                <option value="DEPÓSITO BANCARIO">Depósito Bancario</option>
+                                <option value="OTROS">Otros Gastos</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-uppercase">Frecuencia / Tipo</label>
+                            <select name="frecuencia" class="form-select shadow-sm" required>
+                                <option value="MENSUAL">Mensual</option>
+                                <option value="QUINCENAL">Quincenal</option>
+                                <option value="ÚNICO">Movimiento Único / Depósito</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-uppercase">Descripción <span class="text-danger">*</span></label>
+                            <input type="text" name="descripcion" class="form-control shadow-sm" placeholder="Ej: Pago internet Marzo o Voucher #001" required>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-6">
+                                <label class="form-label small fw-bold text-uppercase">Monto (S/) <span class="text-danger">*</span></label>
+                                <input type="number" step="0.01" min="0.01" name="monto" class="form-control" placeholder="0.00" required>
+                                <div class="invalid-feedback">Monto positivo requerido.</div>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small fw-bold text-uppercase">Fecha <span class="text-danger">*</span></label>
+                                <input type="date" name="fechaPago" class="form-control input-fecha-no-futura" th:value="${#calendars.format(#calendars.createNow(), 'yyyy-MM-dd')}" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 p-4 pt-0">
+                        <button type="submit" class="btn btn-primary w-100 fw-bold py-3 shadow" style="background: #1e3a8a;">CONFIRMAR REGISTRO</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modalEditar" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header bg-dark text-white p-4 border-0">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-pencil-square me-2"></i>Corregir Registro</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form th:action="@{/gastos/actualizar}" method="post" class="needs-validation" novalidate>
+                    <div class="modal-body p-4">
+                        <input type="hidden" name="id" id="editId">
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-uppercase">Categoría</label>
+                            <select name="categoria" id="editCat" class="form-select shadow-sm" required>
+                                <option value="ALQUILER">Alquiler del Local</option>
+                                <option value="LUZ">Servicio de Luz</option>
+                                <option value="AGUA">Servicio de Agua</option>
+                                <option value="INTERNET">Internet / Telefonía</option>
+                                <option value="PERSONAL">Pago de Personal</option>
+                                <option value="DEPÓSITO BANCARIO">Depósito Bancario</option>
+                                <option value="OTROS">Otros Gastos</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-uppercase">Frecuencia</label>
+                            <select name="frecuencia" id="editFrec" class="form-select shadow-sm" required>
+                                <option value="MENSUAL">Mensual</option>
+                                <option value="QUINCENAL">Quincenal</option>
+                                <option value="ÚNICO">Movimiento Único / Depósito</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-uppercase">Descripción</label>
+                            <input type="text" name="descripcion" id="editDesc" class="form-control" required>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-6">
+                                <label class="form-label small fw-bold text-uppercase">Monto (S/)</label>
+                                <input type="number" step="0.01" min="0.01" name="monto" id="editMonto" class="form-control" required>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small fw-bold text-uppercase">Fecha</label>
+                                <input type="date" name="fechaPago" id="editFecha" class="form-control input-fecha-no-futura" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 p-4 pt-0">
+                        <button type="submit" class="btn btn-dark w-100 fw-bold py-3 shadow">GUARDAR CAMBIOS</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+
+        const btnToggle = document.getElementById('btnToggleSidebar');
+        const sidebar = document.getElementById('sidebarMenu');
+        if(btnToggle) btnToggle.addEventListener('click', () => sidebar.classList.toggle('show'));
+
+        const forms = document.querySelectorAll('.needs-validation');
+        Array.from(forms).forEach(form => {
+            form.addEventListener('submit', event => {
+                if (!form.checkValidity()) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                form.classList.add('was-validated');
+            }, false);
+        });
+
+        const hoy = new Date().toISOString().split('T')[0];
+        document.querySelectorAll('.input-fecha-no-futura').forEach(el => el.setAttribute('max', hoy));
+
+        const rows = document.querySelectorAll('.fila-gasto');
+        const itemsPerPage = 10;
+        let currentPage = 1;
+
+        function renderTable() {
+            const start = (currentPage - 1) * itemsPerPage;
+            const end = start + itemsPerPage;
+            rows.forEach((row, index) => {
+                row.style.display = (index >= start && index < end) ? 'table-row' : 'none';
+            });
+            renderPagination();
+        }
+
+        function renderPagination() {
+            const totalPages = Math.ceil(rows.length / itemsPerPage);
+            const container = document.getElementById('paginationControls');
+            if(!container || totalPages <= 1) return;
+            container.innerHTML = '';
+
+            for (let i = 1; i <= totalPages; i++) {
+                const li = document.createElement('li');
+                li.className = `page-item ${i === currentPage ? 'active' : ''}`;
+                li.innerHTML = `<button class="page-link shadow-sm" onclick="window.changePage(${i})">${i}</button>`;
+                container.appendChild(li);
+            }
+        }
+
+        window.changePage = function(page) {
+            currentPage = page;
+            renderTable();
+        };
+
+        window.abrirEditar = function(btn) {
+            const tr = btn.closest('tr');
+            document.getElementById('editId').value = tr.dataset.id;
+            document.getElementById('editCat').value = tr.dataset.cat;
+            document.getElementById('editFrec').value = tr.dataset.frec;
+            document.getElementById('editDesc').value = tr.dataset.desc;
+            document.getElementById('editMonto').value = tr.dataset.monto;
+            document.getElementById('editFecha').value = tr.dataset.fecha;
+            new bootstrap.Modal(document.getElementById('modalEditar')).show();
+        };
+
+        if(rows.length > 0) renderTable();
+    });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<div th:replace="~{fragments/scripts :: escudo-anti-retroceso}"></div>
+</body>
+</html>

@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Producto | Sistema GIAR-V</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; color: #1a202c; overflow-x: hidden; }
+        
+        .sidebar { background: #1e3c72; color: white; height: 100vh; overflow-y: auto; width: 260px; transition: all 0.3s ease; z-index: 1000; position: sticky; top: 0; }
+        .sidebar::-webkit-scrollbar { width: 6px; }
+        .sidebar::-webkit-scrollbar-thumb { background-color: rgba(255, 255, 255, 0.2); border-radius: 10px; }
+        @media (max-width: 767.98px) {
+            .sidebar { position: fixed; transform: translateX(-100%); }
+            .sidebar.show { transform: translateX(0); }
+        }
+        .sidebar a { color: rgba(255, 255, 255, 0.8); text-decoration: none; padding: 12px 20px; display: block; transition: 0.2s; font-weight: 500; font-size: 0.95rem; }
+        .sidebar a:hover, .sidebar a.active { background: rgba(255, 255, 255, 0.1); color: #ff9800; border-left: 4px solid #ff9800; }
+        .sidebar-heading { color: rgba(255,255,255,0.5); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; padding: 15px 20px 5px; font-weight: bold; }
+        .topbar { background: white; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04); }
+
+        .form-container { max-width: 800px; margin: 0 auto; }
+        .card-form { background: white; border: none; border-radius: 20px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05); overflow: hidden; }
+        .card-header-premium { background: #1e3a8a; color: white; padding: 2rem; text-align: center; }
+        
+        .form-label { font-weight: 700; font-size: 0.80rem; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; margin-bottom: 0.5rem; }
+        .form-control, .form-select { padding: 0.75rem 1rem; border-radius: 12px; border: 1px solid #e2e8f0; background-color: #f8fafc; color: #1e293b; font-weight: 500; }
+        .form-control:focus, .form-select:focus { background-color: white; border-color: #3b82f6; box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1); }
+        
+        .input-group-text { border-radius: 12px 0 0 12px; background-color: #f1f5f9; border: 1px solid #e2e8f0; font-weight: 600; color: #64748b; }
+        .input-group .form-control { border-radius: 0 12px 12px 0; }
+        .input-group-text.end { border-radius: 0 12px 12px 0; border-left: 0; }
+        .input-group .form-control.middle { border-radius: 12px 0 0 12px; border-right: 0; }
+        
+        .btn-save { background: #ff9800; color: white; border: none; padding: 0.8rem 2.5rem; border-radius: 12px; font-weight: 700; transition: all 0.3s; }
+        .btn-save:hover { background: #e68a00; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3); color: white; }
+        .btn-cancel { padding: 0.8rem 2rem; border-radius: 12px; font-weight: 600; color: #64748b; border: 1px solid #e2e8f0; background: white; transition: 0.2s; }
+        .btn-cancel:hover { background: #f8fafc; color: #1e293b; }
+        
+        .invalid-feedback { font-weight: 500; font-size: 0.8rem; }
+
+        @media (max-width: 576px) {
+            .card-header-premium { padding: 1.5rem 1rem; }
+            .card-header-premium h2 { font-size: 1.5rem; }
+            .btn-save, .btn-cancel { width: 100%; text-align: center; }
+        }
+        
+        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
+    </style>
+</head>
+<body>
+
+    <div class="d-flex position-relative w-100">
+        
+        <nav class="sidebar flex-shrink-0 shadow-lg" id="sidebarMenu">
+            <div class="p-4 text-center border-bottom border-secondary">
+                <i class="bi bi-box-seam-fill" style="font-size: 2rem; color: #ff9800;"></i>
+                <h5 class="fw-bold mt-2 mb-0">Menestras Villa</h5>
+                <small class="text-white-50">Sede Lima</small>
+            </div>
+            
+            <div class="mt-2">
+                <div class="sidebar-heading">Principal</div>
+                <a th:href="@{/dashboard}"><i class="bi bi-speedometer2 me-3"></i> Dashboard</a>
+
+                <div class="sidebar-heading mt-2">Operaciones</div>
+                <a th:href="@{/pos}"><i class="bi bi-cart-check me-3"></i> Punto de Venta</a>
+                <a th:href="@{/pos/historial}"><i class="bi bi-clock-history me-3"></i> Mis Ventas</a>
+                <a th:href="@{/proveedores}" sec:authorize="hasAuthority('ADMIN')"><i class="bi bi-building me-3"></i> Proveedores</a>
+                <a th:href="@{/compras}" sec:authorize="hasAuthority('ADMIN')"><i class="bi bi-truck me-3"></i> Ingreso de Compras</a>
+
+                <div class="sidebar-heading mt-2">Almacén y Stock</div>
+                <a th:href="@{/productos}"><i class="bi bi-tags me-3"></i> Catálogo de Productos</a>
+                <a th:href="@{/categorias}" sec:authorize="hasAuthority('ADMIN')"><i class="bi bi-grid me-3"></i> Categorías</a>
+                <a th:href="@{/movimientos}"><i class="bi bi-clipboard-data me-3"></i> Movimientos</a>
+
+                <div sec:authorize="hasAuthority('ADMIN')">
+                    <div class="sidebar-heading mt-2">Análisis</div>
+                    <a th:href="@{/reportes}"><i class="bi bi-file-earmark-bar-graph me-3"></i> Reportes Automatizados</a>
+                </div>
+
+                <div class="sidebar-heading mt-2">Finanzas y Seguridad</div>
+                <a th:href="@{/caja/estado}"><i class="bi bi-piggy-bank me-3"></i> Caja</a>
+                <a th:href="@{/gastos}" sec:authorize="hasAuthority('ADMIN')"><i class="bi bi-wallet2 me-3"></i> Gastos Administrativos</a>
+
+                <div sec:authorize="hasAuthority('ADMIN')">
+                    <a th:href="@{/usuarios}"><i class="bi bi-people me-3"></i> Gestión de Usuarios</a>
+                    <a th:href="@{/configuracion}"><i class="bi bi-gear me-3"></i> Configuración</a>
+                </div>
+            </div>
+        </nav>
+
+        <div class="flex-grow-1 w-100" style="min-height: 100vh;">
+            
+            <header class="topbar d-flex justify-content-between align-items-center p-3 px-4 sticky-top">
+                <div class="d-flex align-items-center">
+                    <button id="btnToggleSidebar" class="btn btn-light d-md-none me-3 shadow-sm"><i class="bi bi-list fs-5"></i></button>
+                    <h4 class="mb-0 fw-bold text-secondary d-none d-sm-block">Gestión de Almacén</h4>
+                </div>
+                
+                <div class="d-flex align-items-center">
+                    <div class="me-3 text-end d-none d-sm-block">
+                        <small class="text-muted d-block">Usuario Autenticado</small>
+                        <span class="fw-bold text-dark" sec:authentication="name">Admin</span>
+                    </div>
+                    <form th:action="@{/logout}" method="post" class="m-0">
+                        <button type="submit" class="btn btn-outline-danger btn-sm px-3 rounded-pill shadow-sm">
+                            <i class="bi bi-box-arrow-right me-1 d-sm-none"></i>
+                            <span class="d-none d-sm-inline"><i class="bi bi-box-arrow-right me-1"></i> Cerrar Sesión</span>
+                        </button>
+                    </form>
+                </div>
+            </header>
+
+            <main class="p-3 p-md-5">
+            
+            <div th:if="${success}" class="alert alert-success border-0 shadow-sm rounded-4 p-3 mb-4 d-flex align-items-center">
+			    <i class="bi bi-check-circle-fill me-3 fs-4"></i>
+			    <div class="fw-medium" th:text="${success}"></div>
+			</div>
+			
+			<div th:if="${error}" class="alert alert-danger border-0 shadow-sm rounded-4 p-3 mb-4 d-flex align-items-center">
+			    <i class="bi bi-x-circle-fill me-3 fs-4"></i>
+			    <div class="fw-medium" th:text="${error}"></div>
+			</div>
+            
+                
+                <div class="form-container">
+                    
+                    <div class="mb-4">
+                        <a th:href="@{/productos}" class="text-decoration-none text-muted fw-bold btn btn-light border shadow-sm rounded-pill px-3 py-2">
+                            <i class="bi bi-arrow-left me-2"></i> Volver al Catálogo
+                        </a>
+                    </div>
+
+                    <div class="card card-form">
+                        <div class="card-header-premium">
+                            <i th:class="${producto.id == null ? 'bi bi-box-seam fs-1 mb-2 text-warning' : 'bi bi-pencil-square fs-1 mb-2 text-warning'}"></i>
+                            <h2 class="fw-bold mb-0" th:text="${producto.id == null ? 'Registrar Producto' : 'Actualizar Producto'}"></h2>
+                            <p class="opacity-75 mb-0 small mt-2">Complete la información técnica y precios para el inventario</p>
+                        </div>
+
+                        <div class="card-body p-4 p-md-5">
+                            <form th:action="${producto.id == null} ? @{/productos/guardar} : @{/productos/editar/{id}(id=${producto.id})}" 
+                                  th:method="${producto.id == null} ? post : put" 
+                                  th:object="${producto}">
+                                
+                                <input type="hidden" th:field="*{id}">
+
+                                <div class="mb-4">
+                                    <label class="form-label">Nombre Comercial del Producto <span class="text-danger">*</span></label>
+                                    <input type="text" th:field="*{nombre}" class="form-control" 
+                                           placeholder="Ej: Lenteja Bebé Superior (Saco 50kg)" required
+                                           th:classappend="${#fields.hasErrors('nombre')} ? 'is-invalid'">
+                                    <div class="invalid-feedback" th:errors="*{nombre}"></div>
+                                </div>
+
+                                <div class="row g-4 mb-4">
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label">Clasificación / Categoría <span class="text-danger">*</span></label>
+                                        <select th:field="*{categoria}" class="form-select" required th:classappend="${#fields.hasErrors('categoria')} ? 'is-invalid'">
+                                            <option value="" disabled selected>Seleccione una opción...</option>
+                                            <option th:each="c : ${categorias}" th:value="${c.id}" th:text="${c.nombre}"></option>
+                                        </select>
+                                        <div class="invalid-feedback">Debe asignar una categoría válida</div>
+                                    </div>
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label">Capacidad por Saco <span class="text-danger">*</span></label>
+                                        <div class="input-group">
+                                            <input type="number" step="0.5" th:field="*{kgPorSaco}" class="form-control middle" placeholder="Ej: 50" required
+                                                   th:classappend="${#fields.hasErrors('kgPorSaco')} ? 'is-invalid'">
+                                            <span class="input-group-text end">kg</span>
+                                        </div>
+                                        <div class="invalid-feedback" th:errors="*{kgPorSaco}"></div>
+                                    </div>
+                                </div>
+
+                                <div class="row g-4 mb-4 pt-3 border-top">
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label text-primary">Precio Venta (Por Kilo) <span class="text-danger">*</span></label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">S/</span>
+                                            <input type="number" step="0.10" th:field="*{precioKilo}" class="form-control" placeholder="0.00" required
+                                                   th:classappend="${#fields.hasErrors('precioKilo')} ? 'is-invalid'">
+                                        </div>
+                                        <div class="invalid-feedback" th:errors="*{precioKilo}"></div>
+                                    </div>
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label text-primary">Precio Venta (Saco Completo) <span class="text-danger">*</span></label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">S/</span>
+                                            <input type="number" step="0.50" th:field="*{precioSaco}" class="form-control" placeholder="0.00" required
+                                                   th:classappend="${#fields.hasErrors('precioSaco')} ? 'is-invalid'">
+                                        </div>
+                                        <div class="invalid-feedback" th:errors="*{precioSaco}"></div>
+                                    </div>
+                                </div>
+
+                                <div class="row g-4 mb-5 pt-3 border-top">
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label">Stock Físico Actual <span class="text-danger">*</span></label>
+                                        <div class="input-group">
+                                            <input type="number" step="0.5" th:field="*{stockActualKg}" class="form-control middle" placeholder="0" required
+                                                   th:classappend="${#fields.hasErrors('stockActualKg')} ? 'is-invalid'">
+                                            <span class="input-group-text end">kg</span>
+                                        </div>
+                                        <div class="invalid-feedback" th:errors="*{stockActualKg}"></div>
+                                    </div>
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label text-danger">Límite de Alerta (Stock Mínimo) <span class="text-danger">*</span></label>
+                                        <div class="input-group">
+                                            <input type="number" step="0.5" th:field="*{stockMinimoKg}" class="form-control middle" placeholder="Ej: 25" required
+                                                   th:classappend="${#fields.hasErrors('stockMinimoKg')} ? 'is-invalid'">
+                                            <span class="input-group-text end">kg</span>
+                                        </div>
+                                        <div class="invalid-feedback" th:errors="*{stockMinimoKg}"></div>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex flex-column-reverse flex-sm-row justify-content-sm-end align-items-stretch gap-3 mt-4">
+                                    <a th:href="@{/productos}" class="btn btn-cancel text-decoration-none text-center">Descartar Cambios</a>
+                                    <button type="submit" class="btn btn-save text-center">
+                                        <i class="bi bi-save me-2"></i> Guardar Producto
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const btnToggle = document.getElementById('btnToggleSidebar');
+        const sidebar = document.getElementById('sidebarMenu');
+        
+        btnToggle.addEventListener('click', function() {
+            sidebar.classList.toggle('show');
+        });
+
+        document.addEventListener('click', function(event) {
+            const isClickInsideSidebar = sidebar.contains(event.target);
+            const isClickOnToggleBtn = btnToggle.contains(event.target);
+            if (!isClickInsideSidebar && !isClickOnToggleBtn && window.innerWidth < 768) {
+                sidebar.classList.remove('show');
+            }
+        });
+    });
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<div th:replace="~{fragments/scripts :: escudo-anti-retroceso}"></div>
+</body>
+</html>
