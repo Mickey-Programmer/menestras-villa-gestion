@@ -86,6 +86,6 @@ public class CompraController {
             movimientoRepository.save(mov);
         }
 
-        return "redirect:/compras?success=Compra registrada y Kardex actualizado";
+        return "redirect:/Compras?success=Compra registrada y Kardex actualizado";
     }
 }
